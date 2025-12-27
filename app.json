@@ -1,10 +1,10 @@
 {
   "expo": {
     "name": "2026Words",
-    "slug": "2026Words",
-    "version": "1.0.0",
+    "slug": "2026words",
+    "version": "1.1.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/2026Words.png",
     "scheme": "2026words",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -14,12 +14,13 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "foregroundImage": "./assets/images/2026Words.png",
+        "backgroundImage": "./assets/images/2026Words.png",
+        "monochromeImage": "./assets/images/2026Words.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.rekalicious.words2026"
     },
     "web": {
       "output": "static",
@@ -43,6 +44,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "7d9f26af-72f6-4e9b-a280-ec889ea9c6fc"
+      }
     }
   }
 }
