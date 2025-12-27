@@ -1,11 +1,12 @@
+import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import Flashcard from "@/components/Flashcard";
@@ -59,9 +60,11 @@ export default function PracticeScreen() {
 
   if (!words.length) {
     return (
-      <View style={styles.container}>
-        <Text>Nincs gyakorlásra alkalmas szó.</Text>
-      </View>
+      <LinearGradient colors={["#2f3e5c", "#445b84"]} style={styles.gradient}>
+        <View style={styles.container}>
+          <Text style={{ color: "white" }}>Nincs gyakorlásra alkalmas szó.</Text>
+        </View>
+      </LinearGradient>
     );
   }
 
@@ -78,34 +81,38 @@ export default function PracticeScreen() {
 
   /* -------- UI -------- */
   return (
-    <View style={styles.container}>
-      <Flashcard
-        front={word.text}
-        back={word.translation ?? "—"}
-      />
+    <LinearGradient colors={["#2f3e5c", "#445b84"]} style={styles.gradient}>
+      <View style={styles.container}>
+        <Flashcard
+          front={word.text}
+          back={word.translation ?? "—"}
+        />
 
-      <View style={styles.controls}>
-        <TouchableOpacity onPress={prev} style={styles.button}>
-          <Text style={styles.buttonText}>◀</Text>
-        </TouchableOpacity>
+        <View style={styles.controls}>
+          <TouchableOpacity onPress={prev} style={styles.button}>
+            <Text style={styles.buttonText}>◀</Text>
+          </TouchableOpacity>
 
-        <Text style={styles.counter}>
-          {index + 1} / {words.length}
-        </Text>
+          <Text style={styles.counter}>
+            {index + 1} / {words.length}
+          </Text>
 
-        <TouchableOpacity onPress={next} style={styles.button}>
-          <Text style={styles.buttonText}>▶</Text>
-        </TouchableOpacity>
+          <TouchableOpacity onPress={next} style={styles.button}>
+            <Text style={styles.buttonText}>▶</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
+    </LinearGradient>
   );
 }
 
 /* -------- stílusok -------- */
 const styles = StyleSheet.create({
+  gradient: {
+    flex: 1,
+  },
   container: {
     flex: 1,
-    backgroundColor: "#d2d6ddff",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -126,5 +133,6 @@ const styles = StyleSheet.create({
   },
   counter: {
     fontSize: 16,
+    color: "white",
   },
 });

@@ -488,8 +488,8 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.35)",
   },
 
-  correctMark: { color: "#7CFC98", fontSize: 16 },
-  wrongMark: { color: "#FF8A8A", fontSize: 16 },
+  correctMark: { color: "#8fb8a2", fontSize: 16 },
+  wrongMark: { color: "#c58aa6", fontSize: 16 },
 
   progressBarBackground: {
     flexDirection: "row",
@@ -501,7 +501,7 @@ const styles = StyleSheet.create({
   },
 
   progressBarFill: {
-    backgroundColor: "#7CFC98",
+    backgroundColor: "#9ee2acff",
     borderRadius: 5,
   },
 
