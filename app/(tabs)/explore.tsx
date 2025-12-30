@@ -1,5 +1,6 @@
 import * as Haptics from "expo-haptics";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
+
 
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useRef, useState } from "react";
@@ -43,7 +44,11 @@ function isDayActive(d: DailyActivity) {
 export default function ExploreScreen() {
   const router = useRouter();
 
-  const [language, setLanguage] = useState<Language>("en");
+ const { lang } = useLocalSearchParams();
+ const [language, setLanguage] = useState<Language>(
+  (lang as Language) ?? "en"
+);
+
 
   const [input, setInput] = useState("");
   const [translation, setTranslation] = useState("");
@@ -426,6 +431,17 @@ export default function ExploreScreen() {
         >
           <FontAwesome5 name="clone" size={22} color="#999" />
         </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() =>
+            router.push({
+              pathname: "../wordsearch",
+              params: { lang: language },
+            })
+          }
+        >
+            <FontAwesome5 name="th" size={22} color="#999" />
+          </TouchableOpacity>
+
       </View>
     </LinearGradient>
   );
