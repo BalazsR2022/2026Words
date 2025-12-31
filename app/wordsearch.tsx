@@ -10,11 +10,9 @@ import {
 } from "react-native";
 import { useDailyActivity } from "../hooks/useDailyActivity";
 
-
 import { loadDailyActivity, saveDailyActivity, todayKey } from "@/storage/dailyActivityStorage";
 import { loadWords } from "@/storage/wordStorage";
 import { Language, Word } from "@/types/Word";
-
 
 /* =======================
    TÍPUSOK
@@ -85,19 +83,14 @@ function generateWordSearch(words: string[], lang: Language, size = 10): { grid:
       success = true;
     }
   }
-  
 
-
- function fillerLettersForLanguage(lang: Language): string {
-  if (lang === "ru") {
-    // orosz betűfrekvencia (egyszerűsített)
-    return "ООООЕЕЕАААИННТТРРССВВЛЛККММДПУЯЫЗБГЧЙХЖШЮЦЩЭФ";
+  function fillerLettersForLanguage(lang: Language): string {
+    if (lang === "ru") {
+      return "ООООЕЕЕАААИННТТРРССВВЛЛККММДПУЯЫЗБГЧЙХЖШЮЦЩЭФ";
+    }
+    return "AAAAAEEEEIIIOOOUNNNLRRSTTKM";
   }
-  // latin (en, de)
-  return "AAAAAEEEEIIIOOOUNNNLRRSTTKM";
-}
   const letters = fillerLettersForLanguage(lang);
-
 
   const finalGrid: Grid = grid.map(row =>
     row.map(c => ({
@@ -125,8 +118,6 @@ export default function WordSearchScreen() {
   const [selected, setSelected] = useState<{ x: number; y: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const { markActivity } = useDailyActivity();
-  
-
 
   /* ---------------- LOAD ---------------- */
 
@@ -152,22 +143,23 @@ export default function WordSearchScreen() {
     load();
   }, [language]);
 
+  /* ---------------- DAILY ACTIVITY ---------------- */
+
   async function markWordSearchActivity() {
-  const data = await loadDailyActivity();
-  const key = todayKey();
-  const day = data[key] ?? { addedWords: 0, quizAnswers: 0, activeMs: 0 };
+    const data = await loadDailyActivity();
+    const key = todayKey();
+    const day = data[key] ?? { addedWords: 0, quizAnswers: 0, activeMs: 0 };
 
-  // csak egyszer számítson naponta
-  if (day.quizAnswers > 0) return;
+    // csak egyszer számítson naponta
+    if (day.quizAnswers > 0) return;
 
-  data[key] = {
-    ...day,
-    quizAnswers: day.quizAnswers + 1,
-  };
+    data[key] = {
+      ...day,
+      quizAnswers: day.quizAnswers + 1,
+    };
 
-  await saveDailyActivity(data);
-}
-
+    await saveDailyActivity(data);
+  }
 
   /* ---------------- LOGIKA ---------------- */
 
@@ -196,8 +188,8 @@ export default function WordSearchScreen() {
 
     if (targets.includes(word) && !found.has(word)) {
       markActivity("quiz");
+      markWordSearchActivity(); // <-- napi tevékenység követése
 
-       
       setFound(f => new Set(f).add(word));
       setGrid(g =>
         g.map((row, y) =>

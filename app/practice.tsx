@@ -136,6 +136,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   buttonText: {
+    color: "#77748dff", // elegáns, visszafogott szín
+    fontFamily: "sans-serif-light",
     fontSize: 18,
   },
   counter: {

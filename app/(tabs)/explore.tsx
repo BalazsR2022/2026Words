@@ -16,8 +16,8 @@ import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
 import { LanguageSelector } from "../../components/LanguageSelector";
 import { ThemedView } from "../../components/ui/themed-view";
 
-import { saveWords } from "storage/wordStorage";
 import { useDailyActivity } from "../../hooks/useDailyActivity";
+import { loadWords, saveWords } from "../../storage/wordStorage";
 import { Language, Word } from "../../types/Word";
 
 /* ------------------ MAIN COMPONENT ------------------ */
@@ -30,12 +30,8 @@ export default function ExploreScreen() {
   );
 
   /* -------- DAILY ACTIVITY (HOOK) -------- */
-  const {
-    dailyActivity,
-    markActivity,
-    addActiveTime,
-    isDayActive,
-  } = useDailyActivity();
+  const { dailyActivity, markActivity, addActiveTime, isDayActive } =
+    useDailyActivity();
 
   /* -------- SESSION TIME -------- */
   const sessionStart = useRef(Date.now());
@@ -74,6 +70,15 @@ export default function ExploreScreen() {
     "foreign"
   );
 
+  /* ------------------ LOAD SAVED WORDS ------------------ */
+  useEffect(() => {
+    async function loadSavedWords() {
+      const saved = await loadWords();
+      setWords(saved);
+    }
+    loadSavedWords();
+  }, []);
+
   /* ------------------ WORD CRUD ------------------ */
   function persistWords(updated: Word[]) {
     setWords(updated);
@@ -108,9 +113,7 @@ export default function ExploreScreen() {
 
   function toggleSuspendWord(id: string) {
     persistWords(
-      words.map((w) =>
-        w.id === id ? { ...w, suspended: !w.suspended } : w
-      )
+      words.map((w) => (w.id === id ? { ...w, suspended: !w.suspended } : w))
     );
   }
 
@@ -136,9 +139,7 @@ export default function ExploreScreen() {
   function nextQuizWord(queue: Word[] = quizWordsQueue) {
     if (queue.length === 0) {
       setQuizWord(null);
-      Haptics.notificationAsync(
-        Haptics.NotificationFeedbackType.Success
-      );
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       return;
     }
 
@@ -154,17 +155,13 @@ export default function ExploreScreen() {
     if (!quizWord) return;
 
     const expected =
-      quizDirection === "foreign"
-        ? quizWord.text
-        : quizWord.translation ?? "";
+      quizDirection === "foreign" ? quizWord.text : quizWord.translation ?? "";
 
     const textOk =
       expected.toLowerCase() === quizAnswer.trim().toLowerCase();
 
     const genderOk =
-      quizDirection === "hu" ||
-      !quizWord.gender ||
-      quizGender === quizWord.gender;
+      quizDirection === "hu" || !quizWord.gender || quizGender === quizWord.gender;
 
     const correct = textOk && genderOk;
     setFeedback(correct ? "correct" : "wrong");
@@ -206,9 +203,7 @@ export default function ExploreScreen() {
 
     for (let i = 0; i < 7; i++) {
       const key = d.toISOString().slice(0, 10);
-      res.unshift(
-        !!dailyActivity[key] && isDayActive(dailyActivity[key])
-      );
+      res.unshift(!!dailyActivity[key] && isDayActive(dailyActivity[key]));
       d.setDate(d.getDate() - 1);
     }
     return res;
@@ -267,30 +262,18 @@ export default function ExploreScreen() {
               style={{ opacity: todayIsActive ? 0.9 : 0.5 }}
             />
             <Text style={styles.motivationLine}>
-              {todayIsActive
-                ? "Mai cél teljesítve"
-                : "Ma még nem tanultál"}
+              {todayIsActive ? "Mai cél teljesítve" : "Ma még nem tanultál"}
             </Text>
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-            <FontAwesome5
-              name="fire"
-              size={14}
-              color="white"
-              style={{ opacity: 0.6 }}
-            />
-            <Text style={styles.motivationLine}>
-              Folyamatos napok: {streak}
-            </Text>
+            <FontAwesome5 name="fire" size={14} color="white" style={{ opacity: 0.6 }} />
+            <Text style={styles.motivationLine}>Folyamatos napok: {streak}</Text>
           </View>
 
           <View style={styles.weekRow}>
             {last7Days().map((a, i) => (
-              <Text
-                key={i}
-                style={{ color: "white", opacity: a ? 0.85 : 0.25 }}
-              >
+              <Text key={i} style={{ color: "#a9a9a9", opacity: a ? 0.85 : 0.25 }}>
                 ●
               </Text>
             ))}
@@ -303,11 +286,7 @@ export default function ExploreScreen() {
             <TextInput
               value={input}
               onChangeText={setInput}
-              placeholder={
-                language === "ru"
-                  ? "Írd cirill betűkkel…"
-                  : "Idegen nyelvi alak…"
-              }
+              placeholder={language === "ru" ? "Írd cirill betűkkel…" : "Idegen nyelvi alak…"}
               placeholderTextColor="#ccc"
               style={styles.input}
             />
@@ -337,9 +316,7 @@ export default function ExploreScreen() {
                       },
                     ]}
                   >
-                    <Text style={{ color: "white" }}>
-                      {g.toUpperCase()}
-                    </Text>
+                    <Text style={{ color: "white" }}>{g.toUpperCase()}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -367,29 +344,15 @@ export default function ExploreScreen() {
                       {getArticle(item)} {item.text}
                     </Text>
                     {item.translation && (
-                      <Text style={styles.translationText}>
-                        {item.translation}
-                      </Text>
+                      <Text style={styles.translationText}>{item.translation}</Text>
                     )}
                   </View>
                   <View style={styles.actions}>
-                    <TouchableOpacity
-                      onPress={() => toggleSuspendWord(item.id)}
-                    >
-                      <FontAwesome5
-                        name={item.suspended ? "play" : "pause"}
-                        size={16}
-                        color="white"
-                      />
+                    <TouchableOpacity onPress={() => toggleSuspendWord(item.id)}>
+                      <FontAwesome5 name={item.suspended ? "play" : "pause"} size={16} color="white" />
                     </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => deleteWord(item.id)}
-                    >
-                      <FontAwesome5
-                        name="trash"
-                        size={16}
-                        color="white"
-                      />
+                    <TouchableOpacity onPress={() => deleteWord(item.id)}>
+                      <FontAwesome5 name="trash" size={16} color="white" />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -403,41 +366,21 @@ export default function ExploreScreen() {
           <View style={{ alignItems: "center" }}>
             {quizWord ? (
               <>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    gap: 20,
-                    marginBottom: 10,
-                  }}
-                >
-                  <TouchableOpacity
-                    onPress={() => setQuizDirection("foreign")}
-                  >
-                    <CountryFlag
-                      isoCode={isoCodeForLang(language)}
-                      size={28}
-                    />
+                <View style={{ flexDirection: "row", gap: 20, marginBottom: 10 }}>
+                  <TouchableOpacity onPress={() => setQuizDirection("foreign")}>
+                    <CountryFlag isoCode={isoCodeForLang(language)} size={28} />
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => setQuizDirection("hu")}
-                  >
+                  <TouchableOpacity onPress={() => setQuizDirection("hu")}>
                     <Text style={{ fontSize: 24 }}>🇭🇺</Text>
                   </TouchableOpacity>
                 </View>
 
                 <Text style={styles.quizPrompt}>
-                  {quizDirection === "foreign"
-                    ? quizWord.translation || quizWord.text
-                    : quizWord.text}
+                  {quizDirection === "foreign" ? quizWord.translation || quizWord.text : quizWord.text}
                 </Text>
 
                 <View style={styles.progressBarBackground}>
-                  <View
-                    style={[
-                      styles.progressBarFill,
-                      { flex: progress },
-                    ]}
-                  />
+                  <View style={[styles.progressBarFill, { flex: progress }]} />
                   <View style={{ flex: 1 - progress }} />
                 </View>
 
@@ -449,31 +392,18 @@ export default function ExploreScreen() {
                   style={styles.input}
                 />
 
-                <TouchableOpacity
-                  onPress={checkQuizAnswer}
-                  style={styles.button}
-                >
+                <TouchableOpacity onPress={checkQuizAnswer} style={styles.button}>
                   <Text>Ellenőrzés</Text>
                 </TouchableOpacity>
 
-                {feedback === "correct" && (
-                  <Text style={styles.correctMark}>Helyes</Text>
-                )}
-                {feedback === "wrong" && (
-                  <Text style={styles.wrongMark}>Nem jó</Text>
-                )}
+                {feedback === "correct" && <Text style={styles.correctMark}>Helyes</Text>}
+                {feedback === "wrong" && <Text style={styles.wrongMark}>Nem jó</Text>}
               </>
             ) : (
               <View style={{ marginTop: 20, alignItems: "center" }}>
-                <Text style={{ color: "white", fontSize: 18 }}>
-                  Teszt vége!
-                </Text>
-                <Text style={{ color: "white" }}>
-                  Jó válaszok: {correctCount}
-                </Text>
-                <Text style={{ color: "white" }}>
-                  Hibás válaszok: {wrongCount}
-                </Text>
+                <Text style={{ color: "white", fontSize: 18 }}>Teszt vége!</Text>
+                <Text style={{ color: "white" }}>Jó válaszok: {correctCount}</Text>
+                <Text style={{ color: "white" }}>Hibás válaszok: {wrongCount}</Text>
               </View>
             )}
           </View>
@@ -483,18 +413,10 @@ export default function ExploreScreen() {
       {/* --- BOTTOM BAR --- */}
       <View style={styles.bottomBar}>
         <TouchableOpacity onPress={() => setMode("input")}>
-          <FontAwesome5
-            name="pen"
-            size={22}
-            color={mode === "input" ? "white" : "#999"}
-          />
+          <FontAwesome5 name="pen" size={22} color={mode === "input" ? "white" : "#999"} />
         </TouchableOpacity>
         <TouchableOpacity onPress={startQuizMode}>
-          <FontAwesome5
-            name="question-circle"
-            size={22}
-            color={mode === "quiz" ? "white" : "#999"}
-          />
+          <FontAwesome5 name="question-circle" size={22} color={mode === "quiz" ? "white" : "#999"} />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() =>

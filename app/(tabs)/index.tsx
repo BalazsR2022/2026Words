@@ -15,13 +15,13 @@ export default function HomeScreen() {
 
   return (
     <LinearGradient
-      colors={["#f5f1e6", "#dde1e6"]} // világos, természetes gradient
+      colors={["#a9a9a9", "#c0c0c0", "#e5e5e5"]} // statikus ezüst gradient
       style={styles.container}
     >
       <Text style={styles.title}>Nyelv kiválasztása</Text>
 
       <TouchableOpacity style={styles.card} onPress={() => go("en")}>
-        <CountryFlag isoCode="GB" size={40} style={{ borderRadius: 5 }}  />
+        <CountryFlag isoCode="GB" size={40} style={{ borderRadius: 5 }} />
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.card} onPress={() => go("de")}>
@@ -38,27 +38,30 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
+    justifyContent: "flex-start",
     alignItems: "center",
     gap: 20,
+    paddingTop: 80, // kicsit feljebb a szöveg
   },
   title: {
-    fontSize: 20,
-    marginBottom: 10,
-    color: "#333", // sötétebb, természetesebb szöveg
+    fontSize: 24, // kicsit nagyobb szöveg
+    color: "#77748dff", // elegáns, visszafogott szín
+    fontFamily: "sans-serif-light",
+    fontWeight: "600",
+    marginBottom: 20,
   },
   card: {
     width: 160,
     height: 100,
-    backgroundColor: "#c8c8c8", // semleges, tompított szürke
+    backgroundColor: "#d9d9d9", // harmonikus az ezüst gradienthez
     borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
-    opacity: 0.9, // kissé átlátszó a természetes hatásért
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3, // Android shadow
+    elevation: 3,
+    marginVertical: 10,
   },
 });
