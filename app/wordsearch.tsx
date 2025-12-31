@@ -1,3 +1,4 @@
+import { useDailyActivity } from "@/hooks/useDailyActivity";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -9,8 +10,10 @@ import {
   View,
 } from "react-native";
 
+
 import { loadWords } from "@/storage/wordStorage";
 import { Language, Word } from "@/types/Word";
+
 
 /* =======================
    TÍPUSOK
@@ -81,6 +84,8 @@ function generateWordSearch(words: string[], lang: Language, size = 10): { grid:
       success = true;
     }
   }
+  
+
 
  function fillerLettersForLanguage(lang: Language): string {
   if (lang === "ru") {
@@ -118,6 +123,7 @@ export default function WordSearchScreen() {
   const [found, setFound] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<{ x: number; y: number }[]>([]);
   const [loading, setLoading] = useState(true);
+  const { markActivity } = useDailyActivity();
   
 
 
@@ -145,6 +151,23 @@ export default function WordSearchScreen() {
     load();
   }, [language]);
 
+  async function markWordSearchActivity() {
+  const data = await loadDailyActivity();
+  const key = todayKey();
+  const day = data[key] ?? { addedWords: 0, quizAnswers: 0, activeMs: 0 };
+
+  // csak egyszer számítson naponta
+  if (day.quizAnswers > 0) return;
+
+  data[key] = {
+    ...day,
+    quizAnswers: day.quizAnswers + 1,
+  };
+
+  await saveDailyActivity(data);
+}
+
+
   /* ---------------- LOGIKA ---------------- */
 
   function toggleCell(x: number, y: number) {
@@ -171,6 +194,9 @@ export default function WordSearchScreen() {
       .toUpperCase();
 
     if (targets.includes(word) && !found.has(word)) {
+      markActivity("quiz");
+
+       
       setFound(f => new Set(f).add(word));
       setGrid(g =>
         g.map((row, y) =>

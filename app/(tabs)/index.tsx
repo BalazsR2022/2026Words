@@ -1,5 +1,6 @@
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity } from "react-native";
 import CountryFlag from "react-native-country-flag";
 
 export default function HomeScreen() {
@@ -13,28 +14,30 @@ export default function HomeScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <LinearGradient
+      colors={["#f5f1e6", "#dde1e6"]} // világos, természetes gradient
+      style={styles.container}
+    >
       <Text style={styles.title}>Nyelv kiválasztása</Text>
 
       <TouchableOpacity style={styles.card} onPress={() => go("en")}>
-        <CountryFlag isoCode="GB" size={64} />
+        <CountryFlag isoCode="GB" size={40} style={{ borderRadius: 5 }}  />
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.card} onPress={() => go("de")}>
-        <CountryFlag isoCode="DE" size={64} />
+        <CountryFlag isoCode="DE" size={40} style={{ borderRadius: 5 }} />
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.card} onPress={() => go("ru")}>
-        <CountryFlag isoCode="RU" size={64} />
+        <CountryFlag isoCode="RU" size={40} style={{ borderRadius: 5 }} />
       </TouchableOpacity>
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#d2d6ddff",
     justifyContent: "center",
     alignItems: "center",
     gap: 20,
@@ -42,13 +45,20 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     marginBottom: 10,
+    color: "#333", // sötétebb, természetesebb szöveg
   },
   card: {
     width: 160,
     height: 100,
-    backgroundColor: "#bfc1c5ff",
+    backgroundColor: "#c8c8c8", // semleges, tompított szürke
     borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
+    opacity: 0.9, // kissé átlátszó a természetes hatásért
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3, // Android shadow
   },
 });

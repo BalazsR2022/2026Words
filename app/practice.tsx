@@ -12,6 +12,8 @@ import {
 import Flashcard from "@/components/Flashcard";
 import { loadWords } from "@/storage/wordStorage";
 import { Language, Word } from "@/types/Word";
+ 
+import { useDailyActivity } from "../hooks/useDailyActivity";
 
 /* -------- segédfüggvény: véletlen sorrend -------- */
 function shuffle<T>(array: T[]): T[] {
@@ -24,9 +26,11 @@ function shuffle<T>(array: T[]): T[] {
 }
 
 export default function PracticeScreen() {
-  /* -------- nyelv a routerből -------- */
+  /* -------- hookok FELÜL -------- */
   const { lang } = useLocalSearchParams();
-  const language = lang as Language;
+  const language: Language = (lang as Language) ?? "en";
+
+  const { markActivity } = useDailyActivity();
 
   /* -------- state-ek -------- */
   const [words, setWords] = useState<Word[]>([]);
@@ -53,6 +57,16 @@ export default function PracticeScreen() {
     fetchWords();
   }, [language]);
 
+  /* -------- lapozás -------- */
+  function next() {
+    markActivity("quiz"); // ✅ gyakorlás = tanulás
+    setIndex(i => (i + 1) % words.length);
+  }
+
+  function prev() {
+    setIndex(i => (i - 1 + words.length) % words.length);
+  }
+
   /* -------- állapotok -------- */
   if (loading) {
     return <ActivityIndicator style={{ flex: 1 }} />;
@@ -62,22 +76,15 @@ export default function PracticeScreen() {
     return (
       <LinearGradient colors={["#2f3e5c", "#445b84"]} style={styles.gradient}>
         <View style={styles.container}>
-          <Text style={{ color: "white" }}>Nincs gyakorlásra alkalmas szó.</Text>
+          <Text style={{ color: "white" }}>
+            Nincs gyakorlásra alkalmas szó.
+          </Text>
         </View>
       </LinearGradient>
     );
   }
 
   const word = words[index];
-
-  /* -------- lapozás -------- */
-  function next() {
-    setIndex(i => (i + 1) % words.length);
-  }
-
-  function prev() {
-    setIndex(i => (i - 1 + words.length) % words.length);
-  }
 
   /* -------- UI -------- */
   return (

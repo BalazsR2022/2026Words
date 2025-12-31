@@ -1,8 +1,6 @@
 import * as Haptics from "expo-haptics";
-import { useLocalSearchParams, useRouter } from "expo-router";
-
-
 import { LinearGradient } from "expo-linear-gradient";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   FlatList,
@@ -18,38 +16,42 @@ import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
 import { LanguageSelector } from "../../components/LanguageSelector";
 import { ThemedView } from "../../components/ui/themed-view";
 
-import { loadWords, saveWords } from "storage/wordStorage";
+import { saveWords } from "storage/wordStorage";
+import { useDailyActivity } from "../../hooks/useDailyActivity";
 import { Language, Word } from "../../types/Word";
-
-/* ------------------ DAILY ACTIVITY ------------------ */
-type DailyActivity = {
-  addedWords: number;
-  quizAnswers: number;
-  activeMs: number;
-};
-
-function todayKey() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function isDayActive(d: DailyActivity) {
-  return (
-    d.addedWords >= 3 ||
-    d.quizAnswers >= 10 ||
-    d.activeMs >= 5 * 60 * 1000
-  );
-}
 
 /* ------------------ MAIN COMPONENT ------------------ */
 export default function ExploreScreen() {
   const router = useRouter();
+  const { lang } = useLocalSearchParams();
 
- const { lang } = useLocalSearchParams();
- const [language, setLanguage] = useState<Language>(
-  (lang as Language) ?? "en"
-);
+  const [language, setLanguage] = useState<Language>(
+    (lang as Language) ?? "en"
+  );
 
+  /* -------- DAILY ACTIVITY (HOOK) -------- */
+  const {
+    dailyActivity,
+    markActivity,
+    addActiveTime,
+    isDayActive,
+  } = useDailyActivity();
 
+  /* -------- SESSION TIME -------- */
+  const sessionStart = useRef(Date.now());
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      const now = Date.now();
+      const delta = now - sessionStart.current;
+      sessionStart.current = now;
+      addActiveTime(delta);
+    }, 10000);
+
+    return () => clearInterval(id);
+  }, [addActiveTime]);
+
+  /* -------- WORD INPUT -------- */
   const [input, setInput] = useState("");
   const [translation, setTranslation] = useState("");
   const [gender, setGender] = useState<"m" | "f" | "n" | undefined>();
@@ -57,6 +59,7 @@ export default function ExploreScreen() {
   const [words, setWords] = useState<Word[]>([]);
   const [mode, setMode] = useState<"input" | "quiz">("input");
 
+  /* -------- QUIZ STATE -------- */
   const [quizWord, setQuizWord] = useState<Word | null>(null);
   const [quizAnswer, setQuizAnswer] = useState("");
   const [quizGender, setQuizGender] = useState<"m" | "f" | "n" | undefined>();
@@ -67,36 +70,9 @@ export default function ExploreScreen() {
   const [wrongCount, setWrongCount] = useState(0);
 
   const [quizWordsQueue, setQuizWordsQueue] = useState<Word[]>([]);
-
-  const [quizDirection, setQuizDirection] = useState<"foreign" | "hu">("foreign");
-
-  const [dailyActivity, setDailyActivity] = useState<Record<string, DailyActivity>>(
-    {}
+  const [quizDirection, setQuizDirection] = useState<"foreign" | "hu">(
+    "foreign"
   );
-
-  const sessionStart = useRef<number>(Date.now());
-
-  /* ------------------ LOAD ------------------ */
-  useEffect(() => {
-    loadWords().then(setWords);
-  }, []);
-
-  /* ------------------ TIME TRACK ------------------ */
-  useEffect(() => {
-    const id = setInterval(() => {
-      const now = Date.now();
-      const delta = now - sessionStart.current;
-      sessionStart.current = now;
-
-      setDailyActivity((prev) => {
-        const key = todayKey();
-        const day = prev[key] ?? { addedWords: 0, quizAnswers: 0, activeMs: 0 };
-        return { ...prev, [key]: { ...day, activeMs: day.activeMs + delta } };
-      });
-    }, 10000);
-
-    return () => clearInterval(id);
-  }, []);
 
   /* ------------------ WORD CRUD ------------------ */
   function persistWords(updated: Word[]) {
@@ -118,16 +94,12 @@ export default function ExploreScreen() {
     };
 
     persistWords([newWord, ...words]);
+
     setInput("");
     setTranslation("");
     setGender(undefined);
 
-    // Napi aktivitás
-    setDailyActivity((prev) => {
-      const key = todayKey();
-      const day = prev[key] ?? { addedWords: 0, quizAnswers: 0, activeMs: 0 };
-      return { ...prev, [key]: { ...day, addedWords: day.addedWords + 1 } };
-    });
+    markActivity("word");
   }
 
   function deleteWord(id: string) {
@@ -136,13 +108,19 @@ export default function ExploreScreen() {
 
   function toggleSuspendWord(id: string) {
     persistWords(
-      words.map((w) => (w.id === id ? { ...w, suspended: !w.suspended } : w))
+      words.map((w) =>
+        w.id === id ? { ...w, suspended: !w.suspended } : w
+      )
     );
   }
 
   /* ------------------ QUIZ ------------------ */
-  const activeWords = words.filter((w) => w.language === language && !w.suspended);
-  const suspendedCount = words.filter((w) => w.language === language && w.suspended).length;
+  const activeWords = words.filter(
+    (w) => w.language === language && !w.suspended
+  );
+  const suspendedCount = words.filter(
+    (w) => w.language === language && w.suspended
+  ).length;
 
   function startQuizMode() {
     setMode("quiz");
@@ -158,12 +136,14 @@ export default function ExploreScreen() {
   function nextQuizWord(queue: Word[] = quizWordsQueue) {
     if (queue.length === 0) {
       setQuizWord(null);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Haptics.notificationAsync(
+        Haptics.NotificationFeedbackType.Success
+      );
       return;
     }
 
-    const [nextWord, ...rest] = queue;
-    setQuizWord(nextWord);
+    const [next, ...rest] = queue;
+    setQuizWord(next);
     setQuizAnswer("");
     setQuizGender(undefined);
     setFeedback(null);
@@ -173,18 +153,23 @@ export default function ExploreScreen() {
   function checkQuizAnswer() {
     if (!quizWord) return;
 
-    const expected = quizDirection === "foreign" ? quizWord.text : quizWord.translation ?? "";
-    const textOk = expected.toLowerCase() === quizAnswer.trim().toLowerCase();
-    const genderOk = quizDirection === "hu" || !quizWord.gender || quizGender === quizWord.gender;
+    const expected =
+      quizDirection === "foreign"
+        ? quizWord.text
+        : quizWord.translation ?? "";
+
+    const textOk =
+      expected.toLowerCase() === quizAnswer.trim().toLowerCase();
+
+    const genderOk =
+      quizDirection === "hu" ||
+      !quizWord.gender ||
+      quizGender === quizWord.gender;
 
     const correct = textOk && genderOk;
     setFeedback(correct ? "correct" : "wrong");
 
-    setDailyActivity((prev) => {
-      const key = todayKey();
-      const day = prev[key] ?? { addedWords: 0, quizAnswers: 0, activeMs: 0 };
-      return { ...prev, [key]: { ...day, quizAnswers: day.quizAnswers + 1 } };
-    });
+    markActivity("quiz");
 
     if (correct) setCorrectCount((c) => c + 1);
     else setWrongCount((c) => c + 1);
@@ -194,18 +179,22 @@ export default function ExploreScreen() {
   }
 
   /* ------------------ MOTIVATION ------------------ */
-  const today = dailyActivity[todayKey()];
-  const todayIsActive = today && isDayActive(today);
+  const todayKeyStr = new Date().toISOString().slice(0, 10);
+  const today = dailyActivity[todayKeyStr];
+  const todayIsActive = !!today && isDayActive(today);
 
   function calculateStreak() {
     let streak = 0;
     const d = new Date();
+
     while (true) {
       const key = d.toISOString().slice(0, 10);
-      if (!dailyActivity[key] || !isDayActive(dailyActivity[key])) break;
+      const day = dailyActivity[key];
+      if (!day || !isDayActive(day)) break;
       streak++;
       d.setDate(d.getDate() - 1);
     }
+
     return streak;
   }
 
@@ -214,9 +203,12 @@ export default function ExploreScreen() {
   function last7Days() {
     const res: boolean[] = [];
     const d = new Date();
+
     for (let i = 0; i < 7; i++) {
       const key = d.toISOString().slice(0, 10);
-      res.unshift(!!dailyActivity[key] && isDayActive(dailyActivity[key]));
+      res.unshift(
+        !!dailyActivity[key] && isDayActive(dailyActivity[key])
+      );
       d.setDate(d.getDate() - 1);
     }
     return res;
@@ -234,7 +226,11 @@ export default function ExploreScreen() {
 
   function getArticle(word: Word) {
     if (word.language === "de" && word.gender) {
-      return word.gender === "m" ? "der" : word.gender === "f" ? "die" : "das";
+      return word.gender === "m"
+        ? "der"
+        : word.gender === "f"
+        ? "die"
+        : "das";
     }
     return "";
   }
@@ -243,12 +239,15 @@ export default function ExploreScreen() {
     return lang === "de" ? "DE" : lang === "ru" ? "RU" : "GB";
   }
 
-  const progress = activeWords.length ? Math.min(answeredCount / activeWords.length, 1) : 0;
+  const progress = activeWords.length
+    ? Math.min(answeredCount / activeWords.length, 1)
+    : 0;
 
   /* ------------------ UI ------------------ */
   return (
     <LinearGradient colors={["#2f3e5c", "#445b84"]} style={styles.container}>
       <ThemedView style={styles.content}>
+        {/* --- HEADER --- */}
         <View style={styles.header}>
           <CountryFlag isoCode={isoCodeForLang(language)} size={32} />
           <Text style={styles.wordCountText}>
@@ -258,27 +257,57 @@ export default function ExploreScreen() {
 
         <LanguageSelector selected={language} onSelect={setLanguage} />
 
-        {/* --- MOTIVÁCIÓ --- */}
+        {/* --- MOTIVATION --- */}
         <View style={styles.motivationBox}>
-          <Text style={styles.motivationLine}>
-            {todayIsActive ? "✅ Mai cél teljesítve" : "❌ Ma még nem tanultál"}
-          </Text>
-          <Text style={styles.motivationLine}>🔥 Folyamatos napok: {streak}</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <FontAwesome5
+              name={todayIsActive ? "check-circle" : "times-circle"}
+              size={14}
+              color="white"
+              style={{ opacity: todayIsActive ? 0.9 : 0.5 }}
+            />
+            <Text style={styles.motivationLine}>
+              {todayIsActive
+                ? "Mai cél teljesítve"
+                : "Ma még nem tanultál"}
+            </Text>
+          </View>
+
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <FontAwesome5
+              name="fire"
+              size={14}
+              color="white"
+              style={{ opacity: 0.6 }}
+            />
+            <Text style={styles.motivationLine}>
+              Folyamatos napok: {streak}
+            </Text>
+          </View>
+
           <View style={styles.weekRow}>
             {last7Days().map((a, i) => (
-              <Text key={i} style={{ color: "white", opacity: a ? 1 : 0.3 }}>
+              <Text
+                key={i}
+                style={{ color: "white", opacity: a ? 0.85 : 0.25 }}
+              >
                 ●
               </Text>
             ))}
           </View>
         </View>
 
+        {/* --- INPUT MODE --- */}
         {mode === "input" && (
           <>
             <TextInput
               value={input}
               onChangeText={setInput}
-              placeholder={language === "ru" ? "Írd cirill betűkkel…" : "Idegen nyelvi alak…"}
+              placeholder={
+                language === "ru"
+                  ? "Írd cirill betűkkel…"
+                  : "Idegen nyelvi alak…"
+              }
               placeholderTextColor="#ccc"
               style={styles.input}
             />
@@ -300,11 +329,17 @@ export default function ExploreScreen() {
                       styles.genderButton,
                       {
                         backgroundColor:
-                          g === "m" ? "#6b8fb3" : g === "f" ? "#c58aa6" : "#8fb8a2",
+                          g === "m"
+                            ? "#6b8fb3"
+                            : g === "f"
+                            ? "#c58aa6"
+                            : "#8fb8a2",
                       },
                     ]}
                   >
-                    <Text style={{ color: "white" }}>{g.toUpperCase()}</Text>
+                    <Text style={{ color: "white" }}>
+                      {g.toUpperCase()}
+                    </Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -321,21 +356,40 @@ export default function ExploreScreen() {
                 <View
                   style={[
                     styles.wordItem,
-                    { backgroundColor: getGenderColor(item), opacity: item.suspended ? 0.4 : 1 },
+                    {
+                      backgroundColor: getGenderColor(item),
+                      opacity: item.suspended ? 0.4 : 1,
+                    },
                   ]}
                 >
                   <View style={{ flex: 1 }}>
                     <Text style={styles.foreignText}>
                       {getArticle(item)} {item.text}
                     </Text>
-                    {item.translation && <Text style={styles.translationText}>{item.translation}</Text>}
+                    {item.translation && (
+                      <Text style={styles.translationText}>
+                        {item.translation}
+                      </Text>
+                    )}
                   </View>
                   <View style={styles.actions}>
-                    <TouchableOpacity onPress={() => toggleSuspendWord(item.id)}>
-                      <FontAwesome5 name={item.suspended ? "play" : "pause"} size={16} color="white" />
+                    <TouchableOpacity
+                      onPress={() => toggleSuspendWord(item.id)}
+                    >
+                      <FontAwesome5
+                        name={item.suspended ? "play" : "pause"}
+                        size={16}
+                        color="white"
+                      />
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => deleteWord(item.id)}>
-                      <FontAwesome5 name="trash" size={16} color="white" />
+                    <TouchableOpacity
+                      onPress={() => deleteWord(item.id)}
+                    >
+                      <FontAwesome5
+                        name="trash"
+                        size={16}
+                        color="white"
+                      />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -344,26 +398,46 @@ export default function ExploreScreen() {
           </>
         )}
 
+        {/* --- QUIZ MODE --- */}
         {mode === "quiz" && (
           <View style={{ alignItems: "center" }}>
             {quizWord ? (
               <>
-                {/* --- Quiz nyelv választó zászlókkal --- */}
-                <View style={{ flexDirection: "row", gap: 20, marginBottom: 10 }}>
-                  <TouchableOpacity onPress={() => setQuizDirection("foreign")}>
-                    <CountryFlag isoCode={isoCodeForLang(language)} size={28} />
+                <View
+                  style={{
+                    flexDirection: "row",
+                    gap: 20,
+                    marginBottom: 10,
+                  }}
+                >
+                  <TouchableOpacity
+                    onPress={() => setQuizDirection("foreign")}
+                  >
+                    <CountryFlag
+                      isoCode={isoCodeForLang(language)}
+                      size={28}
+                    />
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={() => setQuizDirection("hu")}>
+                  <TouchableOpacity
+                    onPress={() => setQuizDirection("hu")}
+                  >
                     <Text style={{ fontSize: 24 }}>🇭🇺</Text>
                   </TouchableOpacity>
                 </View>
 
                 <Text style={styles.quizPrompt}>
-                  {quizDirection === "foreign" ? quizWord.translation || quizWord.text : quizWord.text}
+                  {quizDirection === "foreign"
+                    ? quizWord.translation || quizWord.text
+                    : quizWord.text}
                 </Text>
 
                 <View style={styles.progressBarBackground}>
-                  <View style={[styles.progressBarFill, { flex: progress }]} />
+                  <View
+                    style={[
+                      styles.progressBarFill,
+                      { flex: progress },
+                    ]}
+                  />
                   <View style={{ flex: 1 - progress }} />
                 </View>
 
@@ -375,38 +449,30 @@ export default function ExploreScreen() {
                   style={styles.input}
                 />
 
-                {(quizWord.language === "de" || quizWord.language === "ru") &&
-                  quizWord.gender && quizDirection === "foreign" && (
-                    <View style={styles.genderRow}>
-                      {["m", "f", "n"].map((g) => (
-                        <TouchableOpacity
-                          key={g}
-                          onPress={() => setQuizGender(g as any)}
-                          style={[
-                            styles.genderButton,
-                            { backgroundColor: g === "m" ? "#6b8fb3" : g === "f" ? "#c58aa6" : "#8fb8a2" },
-                          ]}
-                        >
-                          <Text style={{ color: "white" }}>{g.toUpperCase()}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  )}
-
-                <TouchableOpacity onPress={checkQuizAnswer} style={styles.button}>
+                <TouchableOpacity
+                  onPress={checkQuizAnswer}
+                  style={styles.button}
+                >
                   <Text>Ellenőrzés</Text>
                 </TouchableOpacity>
 
-                {feedback === "correct" && <Text style={styles.correctMark}>Helyes</Text>}
-                {feedback === "wrong" && <Text style={styles.wrongMark}>Nem jó</Text>}
+                {feedback === "correct" && (
+                  <Text style={styles.correctMark}>Helyes</Text>
+                )}
+                {feedback === "wrong" && (
+                  <Text style={styles.wrongMark}>Nem jó</Text>
+                )}
               </>
             ) : (
               <View style={{ marginTop: 20, alignItems: "center" }}>
-                <Text style={{ color: "white", fontSize: 18, marginBottom: 8 }}>Teszt vége!</Text>
-                <Text style={{ color: "white" }}>Jó válaszok: {correctCount}</Text>
-                <Text style={{ color: "white" }}>Hibás válaszok: {wrongCount}</Text>
+                <Text style={{ color: "white", fontSize: 18 }}>
+                  Teszt vége!
+                </Text>
                 <Text style={{ color: "white" }}>
-                  Eredmény: {answeredCount ? Math.round((correctCount / answeredCount) * 100) : 0}%
+                  Jó válaszok: {correctCount}
+                </Text>
+                <Text style={{ color: "white" }}>
+                  Hibás válaszok: {wrongCount}
                 </Text>
               </View>
             )}
@@ -414,12 +480,21 @@ export default function ExploreScreen() {
         )}
       </ThemedView>
 
+      {/* --- BOTTOM BAR --- */}
       <View style={styles.bottomBar}>
         <TouchableOpacity onPress={() => setMode("input")}>
-          <FontAwesome5 name="pen" size={22} color={mode === "input" ? "white" : "#999"} />
+          <FontAwesome5
+            name="pen"
+            size={22}
+            color={mode === "input" ? "white" : "#999"}
+          />
         </TouchableOpacity>
         <TouchableOpacity onPress={startQuizMode}>
-          <FontAwesome5 name="question-circle" size={22} color={mode === "quiz" ? "white" : "#999"} />
+          <FontAwesome5
+            name="question-circle"
+            size={22}
+            color={mode === "quiz" ? "white" : "#999"}
+          />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() =>
@@ -439,17 +514,22 @@ export default function ExploreScreen() {
             })
           }
         >
-            <FontAwesome5 name="th" size={22} color="#999" />
-          </TouchableOpacity>
-
+          <FontAwesome5 name="th" size={22} color="#999" />
+        </TouchableOpacity>
       </View>
     </LinearGradient>
   );
 }
 
+/* ------------------ STYLES ------------------ */
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { flex: 1, marginTop: 60, paddingHorizontal: 20, backgroundColor: "transparent" },
+  content: {
+    flex: 1,
+    marginTop: 60,
+    paddingHorizontal: 20,
+    backgroundColor: "transparent",
+  },
   header: { flexDirection: "row", alignItems: "center", gap: 10 },
   wordCountText: { color: "white", fontWeight: "bold" },
 
@@ -480,6 +560,8 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     minWidth: 50,
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.25)",
   },
 
   wordItem: {
@@ -492,7 +574,6 @@ const styles = StyleSheet.create({
 
   foreignText: { color: "white", fontWeight: "bold" },
   translationText: { color: "#fff", opacity: 0.8 },
-
   actions: { flexDirection: "row", gap: 14 },
 
   quizPrompt: { color: "white", fontSize: 18, marginBottom: 12 },
