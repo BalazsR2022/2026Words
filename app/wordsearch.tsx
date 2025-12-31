@@ -1,4 +1,3 @@
-import { useDailyActivity } from "@/hooks/useDailyActivity";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -9,8 +8,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useDailyActivity } from "../hooks/useDailyActivity";
 
 
+import { loadDailyActivity, saveDailyActivity, todayKey } from "@/storage/dailyActivityStorage";
 import { loadWords } from "@/storage/wordStorage";
 import { Language, Word } from "@/types/Word";
 
