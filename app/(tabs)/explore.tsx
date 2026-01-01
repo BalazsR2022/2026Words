@@ -366,14 +366,33 @@ export default function ExploreScreen() {
           <View style={{ alignItems: "center" }}>
             {quizWord ? (
               <>
-                <View style={{ flexDirection: "row", gap: 20, marginBottom: 10 }}>
-                  <TouchableOpacity onPress={() => setQuizDirection("foreign")}>
+
+
+
+                <View style={styles.quizLangRow}>
+                  <TouchableOpacity
+                    onPress={() => setQuizDirection("foreign")}
+                    style={[
+                      styles.quizLangButton,
+                      quizDirection === "foreign" && styles.quizLangActive,
+                    ]}
+                  >
                     <CountryFlag isoCode={isoCodeForLang(language)} size={28} />
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={() => setQuizDirection("hu")}>
-                    <Text style={{ fontSize: 24 }}>🇭🇺</Text>
+
+                  <TouchableOpacity
+                    onPress={() => setQuizDirection("hu")}
+                    style={[
+                      styles.quizLangButton,
+                      quizDirection === "hu" && styles.quizLangActive,
+                    ]}
+                  >
+                    <CountryFlag isoCode="HU" size={28} />
                   </TouchableOpacity>
                 </View>
+
+
+
 
                 <Text style={styles.quizPrompt}>
                   {quizDirection === "foreign" ? quizWord.translation || quizWord.text : quizWord.text}
@@ -527,4 +546,23 @@ const styles = StyleSheet.create({
   motivationBox: { marginVertical: 10, alignItems: "center" },
   motivationLine: { color: "white", fontSize: 14, marginVertical: 2 },
   weekRow: { flexDirection: "row", gap: 4, marginTop: 4 },
+
+  quizLangRow: {
+  flexDirection: "row",
+  gap: 16,
+  marginBottom: 12,
+},
+
+quizLangButton: {
+  padding: 8,
+  borderRadius: 10,
+  backgroundColor: "rgba(255,255,255,0.15)",
+  opacity: 0.5,
+},
+
+quizLangActive: {
+  opacity: 1,
+  backgroundColor: "rgba(255,255,255,0.3)",
+},
+
 });

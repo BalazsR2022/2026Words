@@ -93,6 +93,8 @@ export default function PracticeScreen() {
         <Flashcard
           front={word.text}
           back={word.translation ?? "—"}
+          gender={word.gender}
+          language={word.language}
         />
 
         <View style={styles.controls}>
