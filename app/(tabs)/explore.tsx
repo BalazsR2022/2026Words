@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import CountryFlag from "react-native-country-flag";
 import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
+import HangmanScreen from "../hangman";
 
 import { LanguageSelector } from "../../components/LanguageSelector";
 import { ThemedView } from "../../components/ui/themed-view";
@@ -60,7 +61,7 @@ export default function ExploreScreen() {
   const [gender, setGender] = useState<"m" | "f" | "n" | undefined>();
 
   const [words, setWords] = useState<Word[]>([]);
-  const [mode, setMode] = useState<"input" | "quiz">("input");
+ const [mode, setMode] = useState<"input" | "quiz" | "hangman">("input");
 
   /* -------- QUIZ STATE -------- */
   const [quizWord, setQuizWord] = useState<Word | null>(null);
@@ -369,6 +370,12 @@ export default function ExploreScreen() {
             />
           </>
         )}
+          {/* --- HANGMAN MODE --- */}   
+
+          {mode === "hangman" && (
+            <HangmanScreen language={language} />
+          )}
+
 
         {/* --- QUIZ MODE --- */}
         {mode === "quiz" && (
@@ -419,6 +426,8 @@ export default function ExploreScreen() {
                   placeholderTextColor="#ccc"
                   style={styles.input}
                 />
+
+
 
               {/* --- QUIZ GENDER SELECTOR --- */}
               {quizDirection === "foreign" &&
@@ -472,35 +481,39 @@ export default function ExploreScreen() {
         )}
       </ThemedView>
 
-      {/* --- BOTTOM BAR --- */}
-      <View style={styles.bottomBar}>
-        <TouchableOpacity onPress={() => setMode("input")}>
-          <FontAwesome5 name="pen" size={22} color={mode === "input" ? "white" : "#999"} />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={startQuizMode}>
-          <FontAwesome5 name="question-circle" size={22} color={mode === "quiz" ? "white" : "#999"} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() =>
-            router.push({
-              pathname: "../practice",
-              params: { lang: language },
-            })
-          }
-        >
-          <FontAwesome5 name="clone" size={22} color="#999" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() =>
-            router.push({
-              pathname: "../wordsearch",
-              params: { lang: language },
-            })
-          }
-        >
-          <FontAwesome5 name="th" size={22} color="#999" />
-        </TouchableOpacity>
-      </View>
+     {/* --- BOTTOM BAR --- */}
+<View style={styles.bottomBar}>
+  <TouchableOpacity onPress={() => setMode("input")} style={styles.bottomIcon}>
+    <FontAwesome5 name="pen" size={22} color={mode === "input" ? "white" : "#999"} />
+  </TouchableOpacity>
+
+  <TouchableOpacity onPress={startQuizMode} style={styles.bottomIcon}>
+    <FontAwesome5 name="question-circle" size={22} color={mode === "quiz" ? "white" : "#999"} />
+  </TouchableOpacity>
+
+  <TouchableOpacity
+    onPress={() =>
+      router.push({ pathname: "../practice", params: { lang: language } })
+    }
+    style={styles.bottomIcon}
+  >
+    <FontAwesome5 name="clone" size={22} color="#999" />
+  </TouchableOpacity>
+
+  <TouchableOpacity onPress={() => setMode("hangman")} style={styles.bottomIcon}>
+    <FontAwesome5 name="gavel" size={22} color={mode === "hangman" ? "white" : "#999"} />
+  </TouchableOpacity>
+
+  <TouchableOpacity
+    onPress={() =>
+      router.push({ pathname: "../wordsearch", params: { lang: language } })
+    }
+    style={styles.bottomIcon}
+  >
+    <FontAwesome5 name="th" size={22} color="#999" />
+  </TouchableOpacity>
+</View>
+
     </LinearGradient>
   );
 }
@@ -563,14 +576,27 @@ const styles = StyleSheet.create({
   quizPrompt: { color: "white", fontSize: 18, marginBottom: 12 },
 
   bottomBar: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    paddingVertical: 10,
-    backgroundColor: "rgba(0,0,0,0.35)",
-  },
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  paddingVertical: 10,
+  paddingHorizontal: 12,
+  backgroundColor: "rgba(0,0,0,0.35)",
+},
 
-  correctMark: { color: "#8fb8a2", fontSize: 16 },
-  wrongMark: { color: "#c58aa6", fontSize: 16 },
+bottomIcon: {
+  width: 50,
+  alignItems: "center",
+},
+
+
+
+  correctMark: {
+     color: "#8fb8a2", 
+     fontSize: 16, 
+    },
+
+  wrongMark: { color: "#c58aa6", fontSize: 16 ,},
 
   progressBarBackground: {
     flexDirection: "row",
