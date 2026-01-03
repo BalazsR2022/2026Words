@@ -28,6 +28,13 @@ export default function ExploreScreen() {
   const [language, setLanguage] = useState<Language>(
     (lang as Language) ?? "en"
   );
+  useEffect(() => {
+  if (lang && lang !== language) {
+    setLanguage(lang as Language);
+  }
+   // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [lang]);
+
 
   /* -------- DAILY ACTIVITY (HOOK) -------- */
   const { dailyActivity, markActivity, addActiveTime, isDayActive } =
@@ -150,6 +157,8 @@ export default function ExploreScreen() {
     setFeedback(null);
     setQuizWordsQueue(rest);
   }
+
+
 
   function checkQuizAnswer() {
     if (!quizWord) return;
@@ -410,6 +419,40 @@ export default function ExploreScreen() {
                   placeholderTextColor="#ccc"
                   style={styles.input}
                 />
+
+              {/* --- QUIZ GENDER SELECTOR --- */}
+              {quizDirection === "foreign" &&
+                quizWord.gender &&
+                (language === "de" || language === "ru") && (
+                  <View style={styles.genderRow}>
+                    {["m", "f", "n"].map((g) => (
+                      <TouchableOpacity
+                        key={g}
+                        onPress={() => setQuizGender(g as any)}
+                        style={[
+                          styles.genderButton,
+                          {
+                            backgroundColor:
+                              g === "m"
+                                ? "#6b8fb3"
+                                : g === "f"
+                                ? "#c58aa6"
+                                : "#8fb8a2",
+                            opacity: quizGender === g ? 1 : 0.4,
+                          },
+                        ]}
+                      >
+                        <Text style={{ color: "white" }}>{g.toUpperCase()}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+
+
+
+
+
+
 
                 <TouchableOpacity onPress={checkQuizAnswer} style={styles.button}>
                   <Text>Ellenőrzés</Text>

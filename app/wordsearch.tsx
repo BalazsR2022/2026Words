@@ -13,6 +13,8 @@ import { useDailyActivity } from "../hooks/useDailyActivity";
 import { loadDailyActivity, saveDailyActivity, todayKey } from "@/storage/dailyActivityStorage";
 import { loadWords } from "@/storage/wordStorage";
 import { Language, Word } from "@/types/Word";
+import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
+
 
 /* =======================
    TÍPUSOK
@@ -128,9 +130,18 @@ export default function WordSearchScreen() {
         (w: Word) => w.language === language && !w.suspended
       );
 
-      const chosen = shuffle(active)
-        .slice(0, 10)
-        .map(w => w.text);
+      const baseWords = shuffle(active)
+        .map(w => w.text.trim())
+        .filter(w => /^[A-Za-zА-Яа-яЁё]+$/.test(w));
+
+      const chosen: string[] = [];
+
+        let i = 0;
+        while (chosen.length < 10 && baseWords.length > 0) {
+          chosen.push(baseWords[i % baseWords.length]);
+          i++;
+      }
+
 
       const result = generateWordSearch(chosen, language);
       setGrid(result.grid);
@@ -249,8 +260,17 @@ export default function WordSearchScreen() {
         </Text>
 
         {found.size === targets.length && (
-          <Text style={styles.done}>🎉 Kész!</Text>
+          <View style={{ alignItems: "center", marginTop: 8 }}>
+            <FontAwesome5
+              name="check-circle"
+              size={20}
+              color="#9ee2acff"
+              style={{ opacity: 0.9 }}
+            />
+            <Text style={styles.done}>Kész</Text>
+          </View>
         )}
+
 
         <TouchableOpacity onPress={() => router.back()} style={styles.back}>
           <Text style={{ color: "white" }}>Vissza</Text>
@@ -296,7 +316,7 @@ const styles = StyleSheet.create({
   },
 
   progress: { color: "white", marginTop: 10 },
-  done: { color: "#9ee2acff", fontSize: 18, marginTop: 6 },
+  done: { color: "#9ee2acff", fontSize: 16, marginTop: 4, fontWeight: "600", },
 
   back: { marginTop: 16 },
 });

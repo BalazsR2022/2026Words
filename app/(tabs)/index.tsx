@@ -7,7 +7,7 @@ export default function HomeScreen() {
   const router = useRouter();
 
   function go(lang: "en" | "de" | "ru") {
-    router.push({
+    router.replace({
       pathname: "/explore",
       params: { lang },
     });
