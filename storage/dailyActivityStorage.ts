@@ -9,14 +9,22 @@ export type DailyActivity = {
 const KEY = "dailyActivity";
 
 export async function loadDailyActivity(): Promise<Record<string, DailyActivity>> {
-  const raw = await AsyncStorage.getItem(KEY);
-  return raw ? JSON.parse(raw) : {};
+  try {
+    const raw = await AsyncStorage.getItem(KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (error) {
+    console.warn("Hiba a napi aktivitás betöltésekor:", error);
+    return {};
+  }
 }
 
-export async function saveDailyActivity(
-  data: Record<string, DailyActivity>
-) {
-  await AsyncStorage.setItem(KEY, JSON.stringify(data));
+export async function saveDailyActivity(data: Record<string, DailyActivity>) {
+  try {
+    await AsyncStorage.setItem(KEY, JSON.stringify(data));
+  } catch (error) {
+    console.warn("Hiba a napi aktivitás mentésekor:", error);
+  }
 }
 
 export function todayKey() {

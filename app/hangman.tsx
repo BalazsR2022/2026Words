@@ -2,7 +2,7 @@ import { loadWords } from "@/storage/wordStorage";
 import { Language, Word } from "@/types/Word";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -11,25 +11,27 @@ import {
   View,
 } from "react-native";
 
-const MAX_ATTEMPTS = 6;
+const MAX_ATTEMPTS = 12;
 
 type HangmanProps = {
   language: Language;
 };
 
-// ... importok változatlanok ...
-
 export default function HangmanScreen({ language }: HangmanProps) {
   const router = useRouter();
-  const { lang } = useLocalSearchParams();
-  const currentLanguage = (lang as Language) ?? language;
+  const params = useLocalSearchParams();
 
-  const [word, setWord] = useState<string>("");
+  const paramLang =
+    typeof params.lang === "string" ? (params.lang as Language) : undefined;
+
+  const currentLanguage: Language = paramLang ?? language ?? "en";
+
+  const [word, setWord] = useState("");
+  const lastWordRef = useRef<string | null>(null);
   const [guessed, setGuessed] = useState<Set<string>>(new Set());
   const [wrongCount, setWrongCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // Nyelvspecifikus karakterkészlet
   const getLettersForLanguage = useCallback(() => {
     switch (currentLanguage) {
       case "ru":
@@ -42,23 +44,37 @@ export default function HangmanScreen({ language }: HangmanProps) {
     }
   }, [currentLanguage]);
 
-  // Új szó kiválasztása
   const pickNewWord = useCallback(async () => {
     setLoading(true);
+
     const all: Word[] = await loadWords();
     const active = all.filter(
       (w) => w.language === currentLanguage && !w.suspended
     );
+
     const filtered = active
       .map((w) => w.text.trim().toUpperCase())
       .filter((w) => {
-        if (currentLanguage === "ru") return /^[А-ЯЁ]+$/.test(w) && w.length < 10;
-        return /^[A-ZÄÖÜß]+$/.test(w) && w.length < 10;
+        if (currentLanguage === "ru")
+          return /^[А-ЯЁ]+$/.test(w) && w.length < 10;
+        if (currentLanguage === "de")
+          return /^[A-ZÄÖÜß]+$/.test(w) && w.length < 10;
+        return /^[A-Z]+$/.test(w) && w.length < 10;
       });
 
-    if (filtered.length === 0) setWord("EXAMPLE");
-    else setWord(filtered[Math.floor(Math.random() * filtered.length)]);
+    let candidates = filtered;
 
+    if (lastWordRef.current && filtered.length > 1) {
+      candidates = filtered.filter((w) => w !== lastWordRef.current);
+    }
+
+    const nextWord =
+      candidates.length > 0
+        ? candidates[Math.floor(Math.random() * candidates.length)]
+        : "EXAMPLE";
+
+    lastWordRef.current = nextWord;
+    setWord(nextWord);
     setGuessed(new Set());
     setWrongCount(0);
     setLoading(false);
@@ -68,50 +84,71 @@ export default function HangmanScreen({ language }: HangmanProps) {
     pickNewWord();
   }, [pickNewWord]);
 
+  const isWin = word.split("").every((l) => guessed.has(l));
+  const isLose = wrongCount >= MAX_ATTEMPTS;
+  const inputDisabled = isWin || isLose;
+
   function handleGuess(letter: string) {
+    if (inputDisabled) return;
+
     setGuessed((prev) => {
       if (prev.has(letter)) return prev;
+
       const next = new Set(prev);
       next.add(letter);
-      if (!word.includes(letter)) setWrongCount((c) => c + 1);
+
+      if (!word.includes(letter)) {
+        setWrongCount((c) => c + 1);
+      }
+
       return next;
     });
   }
 
   function renderWord() {
     return word.split("").map((l, i) => (
-      <Text key={i} style={styles.letter}>
+      <Text key={`${l}-${i}`} style={styles.letter}>
         {guessed.has(l) ? l : "_"}
       </Text>
     ));
   }
 
   function renderKeyboard() {
-    const letters = getLettersForLanguage();
-    return letters.split("").map((l) => (
-      <TouchableOpacity
-        key={l}
-        onPress={() => handleGuess(l)}
-        style={[
-          styles.key,
-          guessed.has(l) && styles.keyDisabled,
-          !word.includes(l) && guessed.has(l) && styles.keyWrong,
-        ]}
-      >
-        <Text style={styles.keyText}>{l}</Text>
-      </TouchableOpacity>
-    ));
+    return getLettersForLanguage()
+      .split("")
+      .map((l) => {
+        const disabled = guessed.has(l) || inputDisabled;
+
+        return (
+          <TouchableOpacity
+            key={l}
+            onPress={() => handleGuess(l)}
+            disabled={disabled}
+            style={[
+              styles.key,
+              guessed.has(l) && styles.keyDisabled,
+              guessed.has(l) && !word.includes(l) && styles.keyWrong,
+            ]}
+          >
+            <Text style={styles.keyText}>{l}</Text>
+          </TouchableOpacity>
+        );
+      });
   }
 
-  if (loading) return <ActivityIndicator style={{ flex: 1 }} />;
-
-  const isWin = word.split("").every((l) => guessed.has(l));
-  const isLose = wrongCount >= MAX_ATTEMPTS;
+  if (loading) {
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator size="large" color="#ffffff" />
+      </View>
+    );
+  }
 
   return (
     <LinearGradient colors={["#2f3e5c", "#445b84"]} style={styles.gradient}>
       <View style={styles.container}>
         <Text style={styles.title}>Akasztófa</Text>
+
         <Text style={styles.info}>
           Hibák: {wrongCount} / {MAX_ATTEMPTS}
         </Text>
@@ -129,49 +166,121 @@ export default function HangmanScreen({ language }: HangmanProps) {
 
         {(isWin || isLose) && (
           <TouchableOpacity style={styles.button} onPress={pickNewWord}>
-            <Text style={{ color: "white" }}>Új játék</Text>
+            <Text style={styles.buttonText}>Új játék</Text>
           </TouchableOpacity>
         )}
 
-        <TouchableOpacity onPress={() => router.back()} style={styles.back}>
-          <Text style={{ color: "white" }}>Vissza</Text>
+        <TouchableOpacity
+          style={styles.back}
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace("/");
+            }
+          }}
+        >
+          <Text style={styles.buttonText}>Vissza</Text>
         </TouchableOpacity>
       </View>
     </LinearGradient>
   );
 }
 
-// ... stílusok változatlanok ...
-
-    
-
 const styles = StyleSheet.create({
   gradient: { flex: 1 },
-  container: { flex: 1, alignItems: "center", paddingTop: 60 },
-  title: { fontSize: 24, color: "white", marginBottom: 10 },
-  info: { fontSize: 16, color: "white", marginBottom: 10 },
-  wordContainer: { flexDirection: "row", marginVertical: 20 },
-  letter: { fontSize: 32, color: "white", marginHorizontal: 4 },
-  keyboard: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center" },
+
+  loading: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#2f3e5c",
+  },
+
+  container: {
+    flex: 1,
+    alignItems: "center",
+    paddingTop: 40,
+  },
+
+  title: {
+    fontSize: 24,
+    color: "white",
+    marginBottom: 4,
+    fontWeight: "600",
+  },
+
+  info: {
+    fontSize: 16,
+    color: "white",
+    marginBottom: 10,
+  },
+
+  wordContainer: {
+    flexDirection: "row",
+    marginVertical: 16,
+  },
+
+  letter: {
+    fontSize: 28,
+    color: "white",
+    marginHorizontal: 4,
+  },
+
+  keyboard: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    maxWidth: 320,
+  },
+
   key: {
-    width: 32,
-    height: 32,
-    margin: 2,
+    width: 30,
+    height: 30,
+    margin: 3,
     backgroundColor: "rgba(255,255,255,0.25)",
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 4,
   },
-  keyDisabled: { backgroundColor: "rgba(255,255,255,0.5)" },
-  keyWrong: { backgroundColor: "#c58aa6" },
-  keyText: { color: "white", fontWeight: "bold" },
+
+  keyDisabled: {
+    backgroundColor: "rgba(255,255,255,0.5)",
+  },
+
+  keyWrong: {
+    backgroundColor: "#c58aa6",
+  },
+
+  keyText: {
+    color: "white",
+    fontWeight: "600",
+    lineHeight: 18,
+  },
+
   button: {
-    marginTop: 16,
+    marginTop: 12,
+    marginBottom: 20,
     paddingHorizontal: 20,
     paddingVertical: 10,
     backgroundColor: "rgba(255,255,255,0.35)",
     borderRadius: 10,
   },
-  back: { marginTop: 16 },
-  result: { color: "#9ee2acff", fontSize: 18, marginTop: 12, fontWeight: "600" },
+
+  back: {
+    marginTop: 8,
+  },
+
+  buttonText: {
+    color: "white",
+    fontWeight: "600",
+  },
+
+  result: {
+    color: "#9ee2acff",
+    fontSize: 18,
+    marginTop: 12,
+    fontWeight: "600",
+    textAlign: "center",
+  },
 });

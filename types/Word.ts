@@ -1,4 +1,4 @@
-export type Language = "en" | "de" | "ru";
+export type Language = "en" | "de" | "ru" |"it";
 
 export type Word = {
   id: string;

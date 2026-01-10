@@ -1,8 +1,4 @@
-import {
-    loadDailyActivity,
-    saveDailyActivity,
-    todayKey,
-} from "@/storage/dailyActivityStorage";
+import { loadDailyActivity, saveDailyActivity, todayKey } from "@/storage/dailyActivityStorage";
 import { useEffect, useState } from "react";
 
 export type DailyActivity = {
@@ -36,25 +32,15 @@ export function useDailyActivity() {
     const key = todayKey();
 
     setData(prev => {
-      const day = prev[key] ?? {
-        addedWords: 0,
-        quizAnswers: 0,
-        activeMs: 0,
-      };
+      const day = prev[key] ?? { addedWords: 0, quizAnswers: 0, activeMs: 0 };
 
       if (type === "quiz") {
         if (day.quizAnswers > 0) return prev; // napi 1 elég
-        return {
-          ...prev,
-          [key]: { ...day, quizAnswers: day.quizAnswers + 1 },
-        };
+        return { ...prev, [key]: { ...day, quizAnswers: day.quizAnswers + 1 } };
       }
 
       if (type === "word") {
-        return {
-          ...prev,
-          [key]: { ...day, addedWords: day.addedWords + 1 },
-        };
+        return { ...prev, [key]: { ...day, addedWords: day.addedWords + 1 } };
       }
 
       return prev;
@@ -65,16 +51,8 @@ export function useDailyActivity() {
     const key = todayKey();
 
     setData(prev => {
-      const day = prev[key] ?? {
-        addedWords: 0,
-        quizAnswers: 0,
-        activeMs: 0,
-      };
-
-      return {
-        ...prev,
-        [key]: { ...day, activeMs: day.activeMs + ms },
-      };
+      const day = prev[key] ?? { addedWords: 0, quizAnswers: 0, activeMs: 0 };
+      return { ...prev, [key]: { ...day, activeMs: day.activeMs + ms } };
     });
   }
 

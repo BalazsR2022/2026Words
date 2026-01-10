@@ -1,6 +1,8 @@
 import { registerRootComponent } from 'expo';
 
-import App from './App';
+// eslint-disable-next-line import/no-unresolved
+import App from './app/App';
+;
 
 // registerRootComponent calls AppRegistry.registerComponent('main', () => App);
 // It also ensures that whether you load the app in Expo Go or in a native build,

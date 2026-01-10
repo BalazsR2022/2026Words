@@ -1,4 +1,3 @@
-// components/Flashcard.tsx
 import { Language } from "@/types/Word";
 import { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -64,11 +63,9 @@ export default function Flashcard({
       {!flipped ? (
         <View style={{ alignItems: "center" }}>
           <Text style={styles.text}>
-            {language === "de" && (
-              <Text style={styles.article}>
-                {getArticle(language, gender)}{" "}
-              </Text>
-            )}
+            {language === "de" && getArticle(language, gender) ? (
+              <Text style={styles.article}>{getArticle(language, gender)} </Text>
+            ) : null}
             {isRussian ? (
               <>
                 <Text>{base}</Text>

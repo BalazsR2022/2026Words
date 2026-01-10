@@ -1,4 +1,5 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
+import CountryFlag from "react-native-country-flag";
 import { Language } from "../types/Word";
 
 type Props = {
@@ -7,11 +8,24 @@ type Props = {
 };
 
 export function LanguageSelector({ selected, onSelect }: Props) {
+  const languages: { flag: string; lang: Language }[] = [
+    { flag: "GB", lang: "en" },
+    { flag: "IT", lang: "it" },
+    { flag: "DE", lang: "de" },
+    { flag: "RU", lang: "ru" },
+  ];
+
   return (
     <View style={styles.container}>
-      <LangButton flag="🇬🇧" lang="en" selected={selected} onSelect={onSelect} />
-      <LangButton flag="🇩🇪" lang="de" selected={selected} onSelect={onSelect} />
-      <LangButton flag="🇷🇺" lang="ru" selected={selected} onSelect={onSelect} />
+      {languages.map(({ flag, lang }) => (
+        <LangButton
+          key={lang}
+          flag={flag}
+          lang={lang}
+          selected={selected}
+          onSelect={onSelect}
+        />
+      ))}
     </View>
   );
 }
@@ -30,12 +44,9 @@ function LangButton({
   return (
     <TouchableOpacity
       onPress={() => onSelect(lang)}
-      style={[
-        styles.button,
-        selected === lang && styles.selected,
-      ]}
+      style={[styles.button, selected === lang && styles.selected]}
     >
-      <Text style={styles.flag}>{flag}</Text>
+      <CountryFlag isoCode={flag} size={28} />
     </TouchableOpacity>
   );
 }
@@ -44,18 +55,15 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     justifyContent: "center",
-    gap: 16,
     marginBottom: 24,
   },
   button: {
     padding: 10,
     borderRadius: 30,
     backgroundColor: "rgba(255,255,255,0.25)",
+    marginHorizontal: 8, // gap helyett stabil cross-platform
   },
   selected: {
     backgroundColor: "rgba(255,255,255,0.5)",
-  },
-  flag: {
-    fontSize: 28,
   },
 });

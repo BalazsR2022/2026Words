@@ -1,9 +1,12 @@
+import { FontAwesome5 } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   FlatList,
+  KeyboardAvoidingView,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -11,7 +14,6 @@ import {
   View,
 } from "react-native";
 import CountryFlag from "react-native-country-flag";
-import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
 import HangmanScreen from "../hangman";
 
 import { LanguageSelector } from "../../components/LanguageSelector";
@@ -29,15 +31,15 @@ export default function ExploreScreen() {
   const [language, setLanguage] = useState<Language>(
     (lang as Language) ?? "en"
   );
+
   useEffect(() => {
-  if (lang && lang !== language) {
-    setLanguage(lang as Language);
-  }
-   // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [lang]);
+    if (lang && lang !== language) {
+      setLanguage(lang as Language);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang]);
 
-
-  /* -------- DAILY ACTIVITY (HOOK) -------- */
+  /* -------- DAILY ACTIVITY -------- */
   const { dailyActivity, markActivity, addActiveTime, isDayActive } =
     useDailyActivity();
 
@@ -61,7 +63,7 @@ export default function ExploreScreen() {
   const [gender, setGender] = useState<"m" | "f" | "n" | undefined>();
 
   const [words, setWords] = useState<Word[]>([]);
- const [mode, setMode] = useState<"input" | "quiz" | "hangman">("input");
+  const [mode, setMode] = useState<"input" | "quiz" | "hangman">("input");
 
   /* -------- QUIZ STATE -------- */
   const [quizWord, setQuizWord] = useState<Word | null>(null);
@@ -97,12 +99,12 @@ export default function ExploreScreen() {
     if (!input.trim()) return;
 
     const newWord: Word = {
-      id: Date.now().toString(),
+      id: `${Date.now()}-${Math.random()}`,
       text: input.trim(),
       translation: translation.trim() || undefined,
       language,
       createdAt: Date.now(),
-      gender: language === "de" || language === "ru" ? gender : undefined,
+      gender,
       suspended: false,
     };
 
@@ -129,6 +131,7 @@ export default function ExploreScreen() {
   const activeWords = words.filter(
     (w) => w.language === language && !w.suspended
   );
+
   const suspendedCount = words.filter(
     (w) => w.language === language && w.suspended
   ).length;
@@ -159,8 +162,6 @@ export default function ExploreScreen() {
     setQuizWordsQueue(rest);
   }
 
-
-
   function checkQuizAnswer() {
     if (!quizWord) return;
 
@@ -171,7 +172,9 @@ export default function ExploreScreen() {
       expected.toLowerCase() === quizAnswer.trim().toLowerCase();
 
     const genderOk =
-      quizDirection === "hu" || !quizWord.gender || quizGender === quizWord.gender;
+      quizDirection === "hu" ||
+      !quizWord.gender ||
+      quizGender === quizWord.gender;
 
     const correct = textOk && genderOk;
     setFeedback(correct ? "correct" : "wrong");
@@ -201,7 +204,6 @@ export default function ExploreScreen() {
       streak++;
       d.setDate(d.getDate() - 1);
     }
-
     return streak;
   }
 
@@ -241,7 +243,13 @@ export default function ExploreScreen() {
   }
 
   function isoCodeForLang(lang: Language) {
-    return lang === "de" ? "DE" : lang === "ru" ? "RU" : "GB";
+    return lang === "de"
+      ? "DE"
+      : lang === "ru"
+      ? "RU"
+      : lang === "it"
+      ? "IT"
+      : "GB";
   }
 
   const progress = activeWords.length
@@ -250,65 +258,83 @@ export default function ExploreScreen() {
 
   /* ------------------ UI ------------------ */
   return (
-    <LinearGradient colors={["#2f3e5c", "#445b84"]} style={styles.container}>
-      <ThemedView style={styles.content}>
-        {/* --- HEADER --- */}
-        <View style={styles.header}>
-          <CountryFlag isoCode={isoCodeForLang(language)} size={32} />
-          <Text style={styles.wordCountText}>
-            Aktív: {activeWords.length} | Megtanult: {suspendedCount}
-          </Text>
-        </View>
-
-        <LanguageSelector selected={language} onSelect={setLanguage} />
-
-        {/* --- MOTIVATION --- */}
-        <View style={styles.motivationBox}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-            <FontAwesome5
-              name={todayIsActive ? "check-circle" : "times-circle"}
-              size={14}
-              color="white"
-              style={{ opacity: todayIsActive ? 0.9 : 0.5 }}
-            />
-            <Text style={styles.motivationLine}>
-              {todayIsActive ? "Mai cél teljesítve" : "Ma még nem tanultál"}
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <LinearGradient colors={["#2f3e5c", "#445b84"]} style={styles.container}>
+        <ThemedView style={styles.content}>
+          {/* HEADER */}
+          <View style={styles.header}>
+            <CountryFlag isoCode={isoCodeForLang(language)} size={32} />
+            <Text style={[styles.wordCountText, { marginLeft: 10 }]}>
+              Aktív: {activeWords.length} | Megtanult: {suspendedCount}
             </Text>
           </View>
 
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-            <FontAwesome5 name="fire" size={14} color="white" style={{ opacity: 0.6 }} />
-            <Text style={styles.motivationLine}>Folyamatos napok: {streak}</Text>
-          </View>
+          <LanguageSelector selected={language} onSelect={setLanguage} />
 
-          <View style={styles.weekRow}>
-            {last7Days().map((a, i) => (
-              <Text key={i} style={{ color: "#a9a9a9", opacity: a ? 0.85 : 0.25 }}>
-                ●
+          {/* MOTIVATION */}
+          <View style={styles.motivationBox}>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <FontAwesome5
+                name={todayIsActive ? "check-circle" : "times-circle"}
+                size={14}
+                color="white"
+                style={{ opacity: todayIsActive ? 0.9 : 0.5, marginRight: 6 }}
+              />
+              <Text style={styles.motivationLine}>
+                {todayIsActive ? "Mai cél teljesítve" : "Ma még nem tanultál"}
               </Text>
-            ))}
+            </View>
+
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <FontAwesome5
+                name="fire"
+                size={14}
+                color="white"
+                style={{ opacity: 0.6, marginRight: 6 }}
+              />
+              <Text style={styles.motivationLine}>
+                Folyamatos napok: {streak}
+              </Text>
+            </View>
+
+            <View style={styles.weekRow}>
+              {last7Days().map((a, i) => (
+                <Text
+                  key={i}
+                  style={{
+                    color: "#a9a9a9",
+                    opacity: a ? 0.85 : 0.25,
+                    marginHorizontal: 2,
+                  }}
+                >
+                  ●
+                </Text>
+              ))}
+            </View>
           </View>
-        </View>
 
-        {/* --- INPUT MODE --- */}
-        {mode === "input" && (
-          <>
-            <TextInput
-              value={input}
-              onChangeText={setInput}
-              placeholder={language === "ru" ? "Írd cirill betűkkel…" : "Idegen nyelvi alak…"}
-              placeholderTextColor="#ccc"
-              style={styles.input}
-            />
-            <TextInput
-              value={translation}
-              onChangeText={setTranslation}
-              placeholder="Magyar jelentés…"
-              placeholderTextColor="#ccc"
-              style={styles.input}
-            />
+          {/* INPUT MODE */}
+          {mode === "input" && (
+            <>
+              <TextInput
+                value={input}
+                onChangeText={setInput}
+                placeholder="Szó…"
+                placeholderTextColor="#ccc"
+                style={styles.input}
+              />
 
-            {(language === "de" || language === "ru") && (
+              <TextInput
+                value={translation}
+                onChangeText={setTranslation}
+                placeholder="Magyar jelentés…"
+                placeholderTextColor="#ccc"
+                style={styles.input}
+              />
+
               <View style={styles.genderRow}>
                 {["m", "f", "n"].map((g) => (
                   <TouchableOpacity
@@ -330,205 +356,210 @@ export default function ExploreScreen() {
                   </TouchableOpacity>
                 ))}
               </View>
-            )}
 
-            <TouchableOpacity onPress={addWord} style={styles.button}>
-              <Text>Mentés</Text>
-            </TouchableOpacity>
+              <TouchableOpacity onPress={addWord} style={styles.button}>
+                <Text>Mentés</Text>
+              </TouchableOpacity>
 
-            <FlatList
-              data={words.filter((w) => w.language === language)}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <View
-                  style={[
-                    styles.wordItem,
-                    {
-                      backgroundColor: getGenderColor(item),
-                      opacity: item.suspended ? 0.4 : 1,
-                    },
-                  ]}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.foreignText}>
-                      {getArticle(item)} {item.text}
-                    </Text>
-                    {item.translation && (
-                      <Text style={styles.translationText}>{item.translation}</Text>
-                    )}
-                  </View>
-                  <View style={styles.actions}>
-                    <TouchableOpacity onPress={() => toggleSuspendWord(item.id)}>
-                      <FontAwesome5 name={item.suspended ? "play" : "pause"} size={16} color="white" />
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => deleteWord(item.id)}>
-                      <FontAwesome5 name="trash" size={16} color="white" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              )}
-            />
-          </>
-        )}
-          {/* --- HANGMAN MODE --- */}   
-
-          {mode === "hangman" && (
-            <HangmanScreen language={language} />
-          )}
-
-
-        {/* --- QUIZ MODE --- */}
-        {mode === "quiz" && (
-          <View style={{ alignItems: "center" }}>
-            {quizWord ? (
-              <>
-
-
-
-                <View style={styles.quizLangRow}>
-                  <TouchableOpacity
-                    onPress={() => setQuizDirection("foreign")}
+              <FlatList
+                data={words.filter((w) => w.language === language)}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                  <View
                     style={[
-                      styles.quizLangButton,
-                      quizDirection === "foreign" && styles.quizLangActive,
+                      styles.wordItem,
+                      {
+                        backgroundColor: getGenderColor(item),
+                        opacity: item.suspended ? 0.4 : 1,
+                      },
                     ]}
                   >
-                    <CountryFlag isoCode={isoCodeForLang(language)} size={28} />
-                  </TouchableOpacity>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.foreignText}>
+                        {getArticle(item)} {item.text}
+                      </Text>
+                      {item.translation && (
+                        <Text style={styles.translationText}>
+                          {item.translation}
+                        </Text>
+                      )}
+                    </View>
 
-                  <TouchableOpacity
-                    onPress={() => setQuizDirection("hu")}
-                    style={[
-                      styles.quizLangButton,
-                      quizDirection === "hu" && styles.quizLangActive,
-                    ]}
-                  >
-                    <CountryFlag isoCode="HU" size={28} />
-                  </TouchableOpacity>
-                </View>
-
-
-
-
-                <Text style={styles.quizPrompt}>
-                  {quizDirection === "foreign" ? quizWord.translation || quizWord.text : quizWord.text}
-                </Text>
-
-                <View style={styles.progressBarBackground}>
-                  <View style={[styles.progressBarFill, { flex: progress }]} />
-                  <View style={{ flex: 1 - progress }} />
-                </View>
-
-                <TextInput
-                  value={quizAnswer}
-                  onChangeText={setQuizAnswer}
-                  placeholder="Válasz…"
-                  placeholderTextColor="#ccc"
-                  style={styles.input}
-                />
-
-
-
-              {/* --- QUIZ GENDER SELECTOR --- */}
-              {quizDirection === "foreign" &&
-                quizWord.gender &&
-                (language === "de" || language === "ru") && (
-                  <View style={styles.genderRow}>
-                    {["m", "f", "n"].map((g) => (
+                    <View style={styles.actions}>
                       <TouchableOpacity
-                        key={g}
-                        onPress={() => setQuizGender(g as any)}
-                        style={[
-                          styles.genderButton,
-                          {
-                            backgroundColor:
-                              g === "m"
-                                ? "#6b8fb3"
-                                : g === "f"
-                                ? "#c58aa6"
-                                : "#8fb8a2",
-                            opacity: quizGender === g ? 1 : 0.4,
-                          },
-                        ]}
+                        style={{ marginRight: 14 }}
+                        onPress={() => toggleSuspendWord(item.id)}
                       >
-                        <Text style={{ color: "white" }}>{g.toUpperCase()}</Text>
+                        <FontAwesome5
+                          name={item.suspended ? "play" : "pause"}
+                          size={16}
+                          color="white"
+                        />
                       </TouchableOpacity>
-                    ))}
+
+                      <TouchableOpacity
+                        onPress={() => deleteWord(item.id)}
+                      >
+                        <FontAwesome5
+                          name="trash"
+                          size={16}
+                          color="white"
+                        />
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 )}
+              />
+            </>
+          )}
 
+          {mode === "hangman" && <HangmanScreen language={language} />}
 
+          {/* QUIZ MODE */}
+          {mode === "quiz" && (
+            <View style={{ alignItems: "center" }}>
+              {quizWord ? (
+                <>
+                  <View style={styles.quizLangRow}>
+                    <TouchableOpacity
+                      style={[styles.quizLangButton, { marginHorizontal: 8 }]}
+                      onPress={() => setQuizDirection("foreign")}
+                    >
+                      <CountryFlag
+                        isoCode={isoCodeForLang(language)}
+                        size={28}
+                      />
+                    </TouchableOpacity>
 
+                    <TouchableOpacity
+                      style={[styles.quizLangButton, { marginHorizontal: 8 }]}
+                      onPress={() => setQuizDirection("hu")}
+                    >
+                      <CountryFlag isoCode="HU" size={28} />
+                    </TouchableOpacity>
+                  </View>
 
+                  <Text style={styles.quizPrompt}>
+                    {quizDirection === "foreign"
+                      ? quizWord.translation || quizWord.text
+                      : quizWord.text}
+                  </Text>
 
+                  <View style={styles.progressBarBackground}>
+                    <View
+                      style={[styles.progressBarFill, { flex: progress }]}
+                    />
+                    <View style={{ flex: 1 - progress }} />
+                  </View>
 
+                  <TextInput
+                    value={quizAnswer}
+                    onChangeText={setQuizAnswer}
+                    placeholder="Válasz…"
+                    placeholderTextColor="#ccc"
+                    style={styles.input}
+                  />
 
-                <TouchableOpacity onPress={checkQuizAnswer} style={styles.button}>
-                  <Text>Ellenőrzés</Text>
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={checkQuizAnswer}
+                    style={styles.button}
+                  >
+                    <Text>Ellenőrzés</Text>
+                  </TouchableOpacity>
 
-                {feedback === "correct" && <Text style={styles.correctMark}>Helyes</Text>}
-                {feedback === "wrong" && <Text style={styles.wrongMark}>Nem jó</Text>}
-              </>
-            ) : (
-              <View style={{ marginTop: 20, alignItems: "center" }}>
-                <Text style={{ color: "white", fontSize: 18 }}>Teszt vége!</Text>
-                <Text style={{ color: "white" }}>Jó válaszok: {correctCount}</Text>
-                <Text style={{ color: "white" }}>Hibás válaszok: {wrongCount}</Text>
-              </View>
-            )}
-          </View>
-        )}
-      </ThemedView>
+                  {feedback === "correct" && (
+                    <Text style={styles.correctMark}>Helyes</Text>
+                  )}
+                  {feedback === "wrong" && (
+                    <Text style={styles.wrongMark}>Nem jó</Text>
+                  )}
+                </>
+              ) : (
+                <View style={{ marginTop: 20, alignItems: "center" }}>
+                  <Text style={{ color: "white", fontSize: 18 }}>
+                    Teszt vége!
+                  </Text>
+                  <Text style={{ color: "white" }}>
+                    Jó válaszok: {correctCount}
+                  </Text>
+                  <Text style={{ color: "white" }}>
+                    Hibás válaszok: {wrongCount}
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
+        </ThemedView>
 
-     {/* --- BOTTOM BAR --- */}
-<View style={styles.bottomBar}>
-  <TouchableOpacity onPress={() => setMode("input")} style={styles.bottomIcon}>
-    <FontAwesome5 name="pen" size={22} color={mode === "input" ? "white" : "#999"} />
-  </TouchableOpacity>
+        {/* BOTTOM BAR */}
+        <View style={styles.bottomBar}>
+          <TouchableOpacity
+            onPress={() => setMode("input")}
+            style={styles.bottomIcon}
+          >
+            <FontAwesome5 name="pen" size={22} color="white" />
+          </TouchableOpacity>
 
-  <TouchableOpacity onPress={startQuizMode} style={styles.bottomIcon}>
-    <FontAwesome5 name="question-circle" size={22} color={mode === "quiz" ? "white" : "#999"} />
-  </TouchableOpacity>
+          <TouchableOpacity
+            onPress={startQuizMode}
+            style={styles.bottomIcon}
+          >
+            <FontAwesome5 name="question-circle" size={22} color="white" />
+          </TouchableOpacity>
 
-  <TouchableOpacity
-    onPress={() =>
-      router.push({ pathname: "../practice", params: { lang: language } })
-    }
-    style={styles.bottomIcon}
-  >
-    <FontAwesome5 name="clone" size={22} color="#999" />
-  </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() =>
+              router.push({ pathname: "../practice", params: { lang: language } })
+            }
+            style={styles.bottomIcon}
+          >
+            <FontAwesome5 name="clone" size={22} color="white" />
+          </TouchableOpacity>
 
-  <TouchableOpacity onPress={() => setMode("hangman")} style={styles.bottomIcon}>
-    <FontAwesome5 name="gavel" size={22} color={mode === "hangman" ? "white" : "#999"} />
-  </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setMode("hangman")}
+            style={styles.bottomIcon}
+          >
+            <FontAwesome5 name="gavel" size={22} color="white" />
+          </TouchableOpacity>
 
-  <TouchableOpacity
-    onPress={() =>
-      router.push({ pathname: "../wordsearch", params: { lang: language } })
-    }
-    style={styles.bottomIcon}
-  >
-    <FontAwesome5 name="th" size={22} color="#999" />
-  </TouchableOpacity>
-</View>
-
-    </LinearGradient>
+          <TouchableOpacity
+            onPress={() =>
+              router.push({
+                pathname: "../wordsearch",
+                params: { lang: language },
+              })
+            }
+            style={styles.bottomIcon}
+          >
+            <FontAwesome5 name="th" size={22} color="white" />
+          </TouchableOpacity>
+        </View>
+      </LinearGradient>
+    </KeyboardAvoidingView>
   );
 }
 
 /* ------------------ STYLES ------------------ */
 const styles = StyleSheet.create({
   container: { flex: 1 },
+
   content: {
     flex: 1,
-    marginTop: 60,
+    marginTop: Platform.OS === "ios" ? 80 : 60,
     paddingHorizontal: 20,
     backgroundColor: "transparent",
   },
-  header: { flexDirection: "row", alignItems: "center", gap: 10 },
-  wordCountText: { color: "white", fontWeight: "bold" },
+
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  wordCountText: {
+    color: "white",
+    fontWeight: "bold",
+  },
 
   input: {
     backgroundColor: "rgba(255,255,255,0.22)",
@@ -569,34 +600,49 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
 
-  foreignText: { color: "white", fontWeight: "bold" },
-  translationText: { color: "#fff", opacity: 0.8 },
-  actions: { flexDirection: "row", gap: 14 },
+  foreignText: {
+    color: "white",
+    fontWeight: "bold",
+  },
 
-  quizPrompt: { color: "white", fontSize: 18, marginBottom: 12 },
+  translationText: {
+    color: "#fff",
+    opacity: 0.8,
+  },
+
+  actions: {
+    flexDirection: "row",
+  },
+
+  quizPrompt: {
+    color: "white",
+    fontSize: 18,
+    marginBottom: 12,
+  },
 
   bottomBar: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center",
-  paddingVertical: 10,
-  paddingHorizontal: 12,
-  backgroundColor: "rgba(0,0,0,0.35)",
-},
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: "rgba(0,0,0,0.35)",
+  },
 
-bottomIcon: {
-  width: 50,
-  alignItems: "center",
-},
-
-
+  bottomIcon: {
+    width: 50,
+    alignItems: "center",
+  },
 
   correctMark: {
-     color: "#8fb8a2", 
-     fontSize: 16, 
-    },
+    color: "#8fb8a2",
+    fontSize: 16,
+  },
 
-  wrongMark: { color: "#c58aa6", fontSize: 16 ,},
+  wrongMark: {
+    color: "#c58aa6",
+    fontSize: 16,
+  },
 
   progressBarBackground: {
     flexDirection: "row",
@@ -612,26 +658,30 @@ bottomIcon: {
     borderRadius: 5,
   },
 
-  motivationBox: { marginVertical: 10, alignItems: "center" },
-  motivationLine: { color: "white", fontSize: 14, marginVertical: 2 },
-  weekRow: { flexDirection: "row", gap: 4, marginTop: 4 },
+  motivationBox: {
+    marginVertical: 10,
+    alignItems: "center",
+  },
+
+  motivationLine: {
+    color: "white",
+    fontSize: 14,
+    marginVertical: 2,
+  },
+
+  weekRow: {
+    flexDirection: "row",
+    marginTop: 4,
+  },
 
   quizLangRow: {
-  flexDirection: "row",
-  gap: 16,
-  marginBottom: 12,
-},
+    flexDirection: "row",
+    marginBottom: 12,
+  },
 
-quizLangButton: {
-  padding: 8,
-  borderRadius: 10,
-  backgroundColor: "rgba(255,255,255,0.15)",
-  opacity: 0.5,
-},
-
-quizLangActive: {
-  opacity: 1,
-  backgroundColor: "rgba(255,255,255,0.3)",
-},
-
+  quizLangButton: {
+    padding: 8,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.15)",
+  },
 });
