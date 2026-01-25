@@ -8,5 +8,6 @@ export type Word = {
   createdAt: number;
   gender?: "m" | "f" | "n";  // német vagy orosz nem
   suspended?: boolean; 
+  note?: string; // megjegyzés mező
 };
 

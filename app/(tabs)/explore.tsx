@@ -61,6 +61,7 @@ export default function ExploreScreen() {
   const [input, setInput] = useState("");
   const [translation, setTranslation] = useState("");
   const [gender, setGender] = useState<"m" | "f" | "n" | undefined>();
+  const [note, setNote] = useState("");
 
   const [words, setWords] = useState<Word[]>([]);
   const [mode, setMode] = useState<"input" | "quiz" | "hangman">("input");
@@ -106,6 +107,7 @@ export default function ExploreScreen() {
       createdAt: Date.now(),
       gender,
       suspended: false,
+      note: note.trim() || undefined,
     };
 
     persistWords([newWord, ...words]);
@@ -113,6 +115,7 @@ export default function ExploreScreen() {
     setInput("");
     setTranslation("");
     setGender(undefined);
+    setNote("");
 
     markActivity("word");
   }
@@ -124,6 +127,24 @@ export default function ExploreScreen() {
   function toggleSuspendWord(id: string) {
     persistWords(
       words.map((w) => (w.id === id ? { ...w, suspended: !w.suspended } : w))
+    );
+  }
+
+  // cycle gender for an existing word: m -> f -> n -> undefined -> m
+  function cycleGender(id: string) {
+    persistWords(
+      words.map((w) => {
+        if (w.id !== id) return w;
+        const next =
+          w.gender === "m"
+            ? "f"
+            : w.gender === "f"
+            ? "n"
+            : w.gender === "n"
+            ? undefined
+            : "m";
+        return { ...w, gender: next };
+      })
     );
   }
 
@@ -272,7 +293,10 @@ export default function ExploreScreen() {
             </Text>
           </View>
 
-          <LanguageSelector selected={language} onSelect={setLanguage} />
+          <LanguageSelector
+            selected={language}
+            onSelect={setLanguage}
+          />
 
           {/* MOTIVATION */}
           <View style={styles.motivationBox}>
@@ -335,8 +359,16 @@ export default function ExploreScreen() {
                 style={styles.input}
               />
 
+              <TextInput
+                value={note}
+                onChangeText={setNote}
+                placeholder="Megjegyzés…"
+                placeholderTextColor="#ccc"
+                style={styles.input}
+              />
+
               <View style={styles.genderRow}>
-                {["m", "f", "n"].map((g) => (
+                {['m', 'f', 'n'].map((g) => (
                   <TouchableOpacity
                     key={g}
                     onPress={() => setGender(g as any)}
@@ -344,15 +376,15 @@ export default function ExploreScreen() {
                       styles.genderButton,
                       {
                         backgroundColor:
-                          g === "m"
-                            ? "#6b8fb3"
-                            : g === "f"
-                            ? "#c58aa6"
-                            : "#8fb8a2",
+                          g === 'm'
+                            ? '#6b8fb3'
+                            : g === 'f'
+                            ? '#c58aa6'
+                            : '#8fb8a2',
                       },
                     ]}
                   >
-                    <Text style={{ color: "white" }}>{g.toUpperCase()}</Text>
+                    <Text style={{ color: 'white' }}>{g.toUpperCase()}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -383,9 +415,19 @@ export default function ExploreScreen() {
                           {item.translation}
                         </Text>
                       )}
+                      {item.note ? (
+                        <Text style={[styles.translationText, { fontStyle: 'italic', opacity: 0.7 }]}> {item.note} </Text>
+                      ) : null}
                     </View>
 
                     <View style={styles.actions}>
+                      <TouchableOpacity
+                        style={{ marginRight: 14 }}
+                        onPress={() => cycleGender(item.id)}
+                      >
+                        <FontAwesome5 name="venus-mars" size={16} color="white" />
+                      </TouchableOpacity>
+
                       <TouchableOpacity
                         style={{ marginRight: 14 }}
                         onPress={() => toggleSuspendWord(item.id)}
@@ -460,6 +502,36 @@ export default function ExploreScreen() {
                     style={styles.input}
                   />
 
+                  {/* Ha a szóhoz rögzítve volt nem, csak akkor kérdezzük azt */}
+                  {quizWord.gender && (
+                    <View style={{ marginTop: 10, width: '100%' }}>
+                      <Text style={{ color: 'white', marginBottom: 6 }}>Jelöld a nemet:</Text>
+                      <View style={styles.genderRow}>
+                        {['m', 'f', 'n'].map((g) => (
+                          <TouchableOpacity
+                            key={g}
+                            onPress={() => setQuizGender(g as any)}
+                            style={[
+                              styles.genderButton,
+                              {
+                                backgroundColor:
+                                  g === 'm'
+                                    ? '#6b8fb3'
+                                    : g === 'f'
+                                    ? '#c58aa6'
+                                    : '#8fb8a2',
+                                borderWidth: quizGender === g ? 2 : 1,
+                                borderColor: quizGender === g ? '#fff' : 'rgba(255,255,255,0.25)'
+                              },
+                          ]}
+                        >
+                          <Text style={{ color: 'white' }}>{g.toUpperCase()}</Text>
+                        </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+
                   <TouchableOpacity
                     onPress={checkQuizAnswer}
                     style={styles.button}
@@ -493,46 +565,47 @@ export default function ExploreScreen() {
 
         {/* BOTTOM BAR */}
         <View style={styles.bottomBar}>
-          <TouchableOpacity
-            onPress={() => setMode("input")}
-            style={styles.bottomIcon}
-          >
+          <TouchableOpacity onPress={() => setMode("input")} style={styles.bottomIcon}>
             <FontAwesome5 name="pen" size={22} color="white" />
           </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={startQuizMode}
-            style={styles.bottomIcon}
-          >
+          <TouchableOpacity onPress={startQuizMode} style={styles.bottomIcon}>
             <FontAwesome5 name="question-circle" size={22} color="white" />
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() =>
-              router.push({ pathname: "../practice", params: { lang: language } })
-            }
+            onPress={() => router.push({ pathname: "../practice", params: { lang: language } })}
             style={styles.bottomIcon}
           >
             <FontAwesome5 name="clone" size={22} color="white" />
           </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={() => setMode("hangman")}
-            style={styles.bottomIcon}
-          >
+          <TouchableOpacity onPress={() => setMode("hangman")} style={styles.bottomIcon}>
             <FontAwesome5 name="gavel" size={22} color="white" />
           </TouchableOpacity>
 
+          {/* 5th: the word game (puzzle) */}
           <TouchableOpacity
-            onPress={() =>
-              router.push({
-                pathname: "../wordsearch",
-                params: { lang: language },
-              })
-            }
+            onPress={() => router.push({ pathname: "/wordgame", params: { lang: language } })}
             style={styles.bottomIcon}
           >
-            <FontAwesome5 name="th" size={22} color="white" />
+            <FontAwesome5 name="puzzle-piece" size={22} color="white" />
+          </TouchableOpacity>
+
+          {/* 6th: search (magnifier) */}
+          <TouchableOpacity
+            onPress={() => router.push({ pathname: "/search", params: { lang: language } })}
+            style={styles.bottomIcon}
+          >
+            <FontAwesome5 name="search" size={22} color="white" />
+          </TouchableOpacity>
+
+          {/* 7th: memoriter (book) */}
+          <TouchableOpacity
+            onPress={() => router.push({ pathname: "/memoriterList", params: { lang: language } })}
+            style={styles.bottomIcon}
+          >
+            <FontAwesome5 name="book" size={22} color="white" />
           </TouchableOpacity>
         </View>
       </LinearGradient>

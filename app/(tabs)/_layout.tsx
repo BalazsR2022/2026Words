@@ -14,8 +14,14 @@ export default function TabLayout() {
 
         tabBarActiveTintColor: "#bbb6b6ff",
         tabBarInactiveTintColor: "#888888",
+        // show only icon (no label) and center the single icon in the bar
+        tabBarShowLabel: false,
         tabBarStyle: {
           backgroundColor: "#e5e5e5",
+          height: 64,
+          paddingBottom: 6,
+          justifyContent: "center",
+          alignItems: "center",
         },
 
         // Haptics: Androidon no-op, iOS-en működik
@@ -28,27 +34,23 @@ export default function TabLayout() {
           title: "Home",
           tabBarIcon: ({ color }) =>
             Platform.OS === "ios" ? (
-              <IconSymbol
-                size={28}
-                name="house.fill"
-                color={color}
-              />
+              <IconSymbol size={28} name="house.fill" color={color} />
             ) : (
-              <FontAwesome5
-                name="home"
-                size={24}
-                color={color}
-              />
+              <FontAwesome5 name="home" size={24} color={color} />
             ),
         }}
       />
 
-      <Tabs.Screen
-        name="explore"
-        options={{
-          href: null, // rejtett tab, Android + iOS OK
-        }}
-      />
+      {/* Explicitly register other routes as hidden so expo-router doesn't show them as tabs */}
+      <Tabs.Screen name="explore" options={{ href: null }} />
+      <Tabs.Screen name="search" options={{ href: null }} />
+      <Tabs.Screen name="wordlist" options={{ href: null }} />
+      <Tabs.Screen name="wordsearch" options={{ href: null }} />
+      <Tabs.Screen name="memoriterList" options={{ href: null }} />
+      <Tabs.Screen name="memoriterEditor" options={{ href: null }} />
+      <Tabs.Screen name="memoriterPlay" options={{ href: null }} />
+
+      {/* Only Home is registered in the global tab bar to avoid extra arrows/chevrons. */}
     </Tabs>
   );
 }

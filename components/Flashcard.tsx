@@ -9,6 +9,7 @@ type Props = {
   back: string;
   gender?: Gender;
   language?: Language;
+  note?: string;
 };
 
 /* ---------- SZÍNEK ---------- */
@@ -41,6 +42,7 @@ export default function Flashcard({
   back,
   gender,
   language,
+  note,
 }: Props) {
   const [flipped, setFlipped] = useState(false);
 
@@ -81,7 +83,10 @@ export default function Flashcard({
           )}
         </View>
       ) : (
-        <Text style={styles.text}>{back}</Text>
+        <View style={{ alignItems: "center" }}>
+          <Text style={styles.text}>{back}</Text>
+          {note ? <Text style={styles.note}>{note}</Text> : null}
+        </View>
       )}
     </TouchableOpacity>
   );
@@ -90,7 +95,7 @@ export default function Flashcard({
 const styles = StyleSheet.create({
   card: {
     width: 280,
-    height: 180,
+    height: 220,
     borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
@@ -116,5 +121,11 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 14,
     opacity: 0.4,
+  },
+
+  note: {
+    marginTop: 10,
+    fontSize: 14,
+    color: "#444",
   },
 });

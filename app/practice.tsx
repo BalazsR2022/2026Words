@@ -116,6 +116,7 @@ export default function PracticeScreen() {
           back={word.translation ?? "—"}
           gender={word.gender}
           language={word.language}
+          note={word.note}
         />
 
         <View style={styles.controls}>
