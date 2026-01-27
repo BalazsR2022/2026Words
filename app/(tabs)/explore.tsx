@@ -71,6 +71,7 @@ export default function ExploreScreen() {
   const [quizAnswer, setQuizAnswer] = useState("");
   const [quizGender, setQuizGender] = useState<"m" | "f" | "n" | undefined>();
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
+  const [expectedAnswer, setExpectedAnswer] = useState<string | null>(null);
 
   const [answeredCount, setAnsweredCount] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
@@ -172,6 +173,7 @@ export default function ExploreScreen() {
     if (queue.length === 0) {
       setQuizWord(null);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setExpectedAnswer(null);
       return;
     }
 
@@ -180,6 +182,7 @@ export default function ExploreScreen() {
     setQuizAnswer("");
     setQuizGender(undefined);
     setFeedback(null);
+    setExpectedAnswer(null);
     setQuizWordsQueue(rest);
   }
 
@@ -199,6 +202,7 @@ export default function ExploreScreen() {
 
     const correct = textOk && genderOk;
     setFeedback(correct ? "correct" : "wrong");
+    setExpectedAnswer(expected);
 
     markActivity("quiz");
 
@@ -206,7 +210,9 @@ export default function ExploreScreen() {
     else setWrongCount((c) => c + 1);
 
     setAnsweredCount((c) => c + 1);
-    setTimeout(() => nextQuizWord(), 600);
+    // advance after a short delay; longer delay for wrong answers so user can see the correct solution
+    const delay = correct ? 600 : 1400;
+    setTimeout(() => nextQuizWord(), delay);
   }
 
   /* ------------------ MOTIVATION ------------------ */
@@ -540,10 +546,20 @@ export default function ExploreScreen() {
                   </TouchableOpacity>
 
                   {feedback === "correct" && (
-                    <Text style={styles.correctMark}>Helyes</Text>
+                    <>
+                      <Text style={styles.correctMark}>Helyes</Text>
+                      {expectedAnswer ? (
+                        <Text style={styles.expectedText}>Megoldás: {expectedAnswer}</Text>
+                      ) : null}
+                    </>
                   )}
                   {feedback === "wrong" && (
-                    <Text style={styles.wrongMark}>Nem jó</Text>
+                    <>
+                      <Text style={styles.wrongMark}>Nem jó</Text>
+                      {expectedAnswer ? (
+                        <Text style={styles.expectedText}>Megoldás: {expectedAnswer}</Text>
+                      ) : null}
+                    </>
                   )}
                 </>
               ) : (
@@ -717,6 +733,12 @@ const styles = StyleSheet.create({
   wrongMark: {
     color: "#c58aa6",
     fontSize: 16,
+  },
+
+  expectedText: {
+    color: "#9ee2acff",
+    marginTop: 6,
+    fontStyle: "italic",
   },
 
   progressBarBackground: {
