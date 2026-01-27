@@ -700,6 +700,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 12,
     backgroundColor: "rgba(0,0,0,0.35)",
+    // add extra bottom padding on Android so the bar sits above the system navigation
+    paddingBottom: Platform.OS === "android" ? 24 : 10,
   },
 
   bottomIcon: {

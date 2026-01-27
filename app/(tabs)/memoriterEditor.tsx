@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { FontAwesome5 } from '@expo/vector-icons';
 
 import { loadMemoriters, saveMemoriters, addMemoriter } from '../../storage/memoriterStorage';
 import { Memoriter } from '../../types/Memoriter';
@@ -50,7 +49,8 @@ export default function MemoriterEditor() {
       await addMemoriter(item);
     }
 
-    router.back();
+    // Navigate to the memoriter list so the new/updated item is visible and we don't end up at the app root
+    router.replace({ pathname: "./memoriterList", params: { lang } });
   }
 
   return (

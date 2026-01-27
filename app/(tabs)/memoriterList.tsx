@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import CountryFlag from "react-native-country-flag";
 import { FontAwesome5 } from "@expo/vector-icons";
+import { useFocusEffect } from '@react-navigation/native';
 
 import { ThemedView } from "../../components/ui/themed-view";
 import { loadMemoriters, deleteMemoriter } from "../../storage/memoriterStorage";
@@ -16,13 +17,27 @@ export default function MemoriterList() {
   const [items, setItems] = useState<Memoriter[]>([]);
   const [filter, setFilter] = useState("");
 
-  useEffect(() => {
-    async function load() {
-      const all = await loadMemoriters();
-      setItems(all.filter(m => m.language === language));
-    }
-    load();
+  const load = useCallback(async () => {
+    const all = await loadMemoriters();
+    const filtered = all.filter((m) => m.language === language);
+    // sort by title
+    filtered.sort((a, b) => a.title.localeCompare(b.title));
+    setItems(filtered);
   }, [language]);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+      return () => {};
+    }, [load])
+  );
+
+  useEffect(() => {
+    if (lang && lang !== language) {
+      setLanguage(lang as any);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang]);
 
   function isoCodeForLang(l: string) {
     return l === "de" ? "DE" : l === "ru" ? "RU" : l === "it" ? "IT" : "GB";
@@ -55,20 +70,19 @@ export default function MemoriterList() {
             <View style={styles.item}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.title}>{item.title}</Text>
-                <Text style={styles.preview}>{item.text.slice(0, 120)}{item.text.length>120?"...":""}</Text>
               </View>
 
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <TouchableOpacity style={{ marginRight: 10 }} onPress={() => router.push({ pathname: "./memoriterPlay", params: { id: item.id } })}>
-                  <FontAwesome5 name="play" size={18} color="white" />
-                </TouchableOpacity>
-
                 <TouchableOpacity style={{ marginRight: 10 }} onPress={() => router.push({ pathname: "./memoriterEditor", params: { id: item.id } })}>
                   <FontAwesome5 name="pen" size={18} color="white" />
                 </TouchableOpacity>
 
-                <TouchableOpacity onPress={() => { deleteMemoriter(item.id); setItems(items.filter(i=>i.id!==item.id)); }}>
+                <TouchableOpacity style={{ marginRight: 10 }} onPress={async () => { await deleteMemoriter(item.id); setItems(prev => prev.filter(i => i.id !== item.id)); }}>
                   <FontAwesome5 name="trash" size={18} color="white" />
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={() => router.push({ pathname: "./memoriterPlay", params: { id: item.id } })}>
+                  <FontAwesome5 name="play" size={18} color="white" />
                 </TouchableOpacity>
               </View>
             </View>

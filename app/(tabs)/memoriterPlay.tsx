@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View, ScrollView } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { loadMemoriters } from '../../storage/memoriterStorage';
@@ -17,12 +17,19 @@ function pickWordsToBlank(text: string) {
 export default function MemoriterPlay(){
   const params = useLocalSearchParams();
   const id = typeof params.id === 'string' ? params.id : undefined;
+  const router = useRouter();
 
   const [item, setItem] = useState<Memoriter | null>(null);
   const [blanks, setBlanks] = useState<string[]>([]);
   const [answers, setAnswers] = useState<Record<string,string>>({});
   const [checked, setChecked] = useState(false);
   const [score, setScore] = useState(0);
+
+  function matches(expected: string, got: string){
+    const exp = expected.toLowerCase();
+    const g = (got || '').toLowerCase();
+    return !!g && (g.includes(exp) || exp.includes(g) || g===exp);
+  }
 
   useEffect(()=>{
     let mounted = true;
@@ -67,7 +74,7 @@ export default function MemoriterPlay(){
       const expected = b.toLowerCase();
       const got = (answers[b] || '').toLowerCase();
       // partial match: contains expected or expected contains got
-      if(got && (got.includes(expected) || expected.includes(got) || expected===got)) sc++;
+      if(matches(expected, got)) sc++;
     }
     setScore(sc);
     setChecked(true);
@@ -92,7 +99,19 @@ export default function MemoriterPlay(){
               {!checked ? (
                 <TextInput style={styles.blank} value={answers[r.key] ?? ''} onChangeText={(v:string)=>onChange(r.key as string, v)} />
               ) : (
-                <Text style={styles.blankResult}>{r.text} → {answers[r.key as string] ?? '—'}</Text>
+                (() => {
+                  const expected = r.key;
+                  const got = answers[r.key] ?? '';
+                  const correct = matches(expected, got.toLowerCase());
+                  return correct ? (
+                    <Text style={styles.blankCorrect}>{got || expected}</Text>
+                  ) : (
+                    <View style={{flexDirection:'row', alignItems:'center'}}>
+                      <Text style={styles.blankWrong}>{got || '—'}</Text>
+                      <Text style={styles.blankCorrect}>&nbsp;→&nbsp;{expected}</Text>
+                    </View>
+                  );
+                })()
               )}
             </View>
           ))}
@@ -103,7 +122,14 @@ export default function MemoriterPlay(){
         ) : (
           <View style={{alignItems:'center'}}>
             <Text style={{color:'white'}}>Pontszám: {score} / {blanks.length}</Text>
-            <TouchableOpacity onPress={()=>{ setChecked(false); setAnswers({}); setScore(0); }} style={styles.button}><Text>Újra</Text></TouchableOpacity>
+            <View style={styles.buttonRow}>
+              <TouchableOpacity onPress={()=>{ setChecked(false); setAnswers({}); setScore(0); }} style={[styles.button, styles.buttonEqual, {marginRight:10}]}>
+                <Text>Újra</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => router.push({ pathname: './memoriterList', params: { lang: item.language } })} style={[styles.button, styles.buttonEqual]}>
+                <Text>Lista</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 
@@ -120,5 +146,9 @@ const styles = StyleSheet.create({
   blankWrap: { minWidth: 80, marginHorizontal: 4 },
   blank: { backgroundColor: 'rgba(255,255,255,0.22)', color: 'white', padding: 6, borderRadius: 6 },
   blankResult: { color: 'white' },
-  button: { backgroundColor: 'rgba(255,255,255,0.35)', padding: 12, borderRadius: 10, alignItems: 'center', marginTop: 20 }
+  blankWrong: { textDecorationLine: 'line-through', color: '#c58aa6' },
+  blankCorrect: { color: '#8fb8a2' },
+  button: { backgroundColor: 'rgba(255,255,255,0.35)', padding: 12, borderRadius: 10, alignItems: 'center', marginTop: 20 },
+  buttonRow: { flexDirection: 'row', marginTop: 12 },
+  buttonEqual: { minWidth: 120, justifyContent: 'center' }
 });
