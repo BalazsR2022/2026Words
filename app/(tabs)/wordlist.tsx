@@ -16,6 +16,13 @@ export default function WordListScreen() {
   const [allWords, setAllWords] = useState<Word[]>([]);
   const [query, setQuery] = useState("");
 
+  // Inline edit state (allow editing words from the wordlist screen)
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
+  const [editTranslation, setEditTranslation] = useState("");
+  const [editNote, setEditNote] = useState("");
+  const [editGender, setEditGender] = useState<"m" | "f" | "n" | undefined>(undefined);
+
   useEffect(() => {
     if (lang && lang !== language) {
       setLanguage(lang as Language);
@@ -68,6 +75,33 @@ export default function WordListScreen() {
     );
   }
 
+  function startEdit(word: Word) {
+    setEditingId(word.id);
+    setEditText(word.text);
+    setEditTranslation(word.translation ?? "");
+    setEditNote(word.note ?? "");
+    setEditGender(word.gender);
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditText("");
+    setEditTranslation("");
+    setEditNote("");
+    setEditGender(undefined);
+  }
+
+  function saveEdit() {
+    if (!editingId) return;
+    const updated = allWords.map((w) =>
+      w.id === editingId
+        ? ({ ...w, text: editText.trim(), translation: editTranslation.trim() || undefined, note: editNote.trim() || undefined, gender: editGender })
+        : w
+    );
+    persistWords(updated);
+    cancelEdit();
+  }
+
   return (
     <LinearGradient colors={["#2f3e5c", "#445b84"]} style={styles.container}>
       <ThemedView style={styles.content}>
@@ -75,6 +109,26 @@ export default function WordListScreen() {
           <CountryFlag isoCode={isoCodeForLang(language)} size={28} />
           <Text style={styles.headerTitle}>Szólista — {language.toUpperCase()}</Text>
         </View>
+
+        {/* Inline editor shown when editingId is set */}
+        {editingId && (
+          <View style={{ marginBottom: 12 }}>
+            <TextInput value={editText} onChangeText={setEditText} placeholder="Szó…" placeholderTextColor="#ccc" style={styles.input} />
+            <TextInput value={editTranslation} onChangeText={setEditTranslation} placeholder="Magyar jelentés…" placeholderTextColor="#ccc" style={styles.input} />
+            <TextInput value={editNote} onChangeText={setEditNote} placeholder="Megjegyzés…" placeholderTextColor="#ccc" style={styles.input} />
+            <View style={styles.genderRow}>
+              {['m','f','n'].map((g) => (
+                <TouchableOpacity key={g} onPress={() => setEditGender(g as any)} style={[styles.genderButton, { backgroundColor: g === 'm' ? '#6b8fb3' : g === 'f' ? '#c58aa6' : '#8fb8a2', borderWidth: editGender === g ? 2 : 1, borderColor: editGender === g ? '#fff' : 'rgba(255,255,255,0.25)'}]}>
+                  <Text style={{ color: 'white' }}>{g.toUpperCase()}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <TouchableOpacity onPress={saveEdit} style={[styles.button, { flex: 1, marginRight: 8 }]}><Text>Mentés</Text></TouchableOpacity>
+              <TouchableOpacity onPress={cancelEdit} style={[styles.button, { flex: 1 }]}><Text>Mégse</Text></TouchableOpacity>
+            </View>
+          </View>
+        )}
 
         <TextInput
           value={query}
@@ -104,8 +158,8 @@ export default function WordListScreen() {
                   <FontAwesome5 name="venus-mars" size={18} color="white" />
                 </TouchableOpacity>
 
-                <TouchableOpacity style={[styles.iconButton, { marginRight: 10 }]} onPress={() => { /* reserved: open detail/edit */ }}>
-                  <FontAwesome5 name="search" size={18} color="white" />
+                <TouchableOpacity style={[styles.iconButton, { marginRight: 10 }]} onPress={() => startEdit(item)}>
+                  <FontAwesome5 name="edit" size={18} color="white" />
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.iconButton} onPress={() => deleteWord(item.id)}>
@@ -153,4 +207,7 @@ const styles = StyleSheet.create({
   foreignText: { color: "white", fontWeight: "bold" },
   translationText: { color: "#fff", opacity: 0.8 },
   iconButton: { width: 40, alignItems: "center" },
+  genderRow: { flexDirection: 'row', marginTop: 8, marginBottom: 12 },
+  genderButton: { flex: 1, padding: 10, borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginRight: 8 },
+  button: { backgroundColor: 'rgba(255,255,255,0.1)', padding: 10, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
 });

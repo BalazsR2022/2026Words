@@ -18,8 +18,8 @@ export default function TabLayout() {
         tabBarShowLabel: false,
         tabBarStyle: {
           backgroundColor: "#e5e5e5",
-          height: 64,
-          paddingBottom: 6,
+          height: 80,
+          paddingBottom: Platform.OS === 'android'? 20:6,
           justifyContent: "center",
           alignItems: "center",
         },
